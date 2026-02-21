@@ -111,6 +111,10 @@ std::unique_ptr<Type> Parser::parseType() {
         return Type::makeU64();
     } else if (match(TokenType::TOK_PTR)) {
         return Type::makePtr();
+    } else if (match(TokenType::TOK_REGISTER)) {
+        // Register type - the variable name will be the register name
+        auto regType = std::make_unique<Type>(TypeKind::Register);
+        return regType;
     } else if (match(TokenType::TOK_LEFT_BRACKET)) {
         // Array type: [type; size]
         auto elementType = parseType();

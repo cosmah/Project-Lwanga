@@ -91,6 +91,9 @@ llvm::Type* IRGenerator::convertType(const Type* type) {
             llvm::FunctionType* funcType = llvm::FunctionType::get(returnType, paramTypes, false);
             return llvm::PointerType::get(funcType, 0);
         }
+        case TypeKind::Register:
+            // Registers are represented as 64-bit integers in LLVM
+            return llvm::Type::getInt64Ty(*context);
     }
     
     return nullptr;
@@ -288,6 +291,46 @@ void IRGenerator::generateStatement(StmtAST* stmt) {
 }
 
 void IRGenerator::generateVarDecl(VarDeclStmt* stmt) {
+    // Check if this is a register variable
+    if (stmt->type->kind == TypeKind::Register) {
+        // For register variables, the variable name IS the register name
+        // Store the register name in a map for later use
+        // We don't allocate stack space for registers
+        
+        // Store register info
+        llvm::Type* regType = llvm::Type::getInt64Ty(*context);
+        namedTypes[stmt->name] = regType;
+        
+        // Mark this as a register variable by storing nullptr in namedValues
+        // We'll handle reads/writes specially in generateIdentifier and generateAssignment
+        namedValues[stmt->name] = nullptr; // nullptr indicates register variable
+        
+        // Store the register name in the type for later use
+        stmt->type->registerName = stmt->name;
+        
+        // If there's an initializer, we need to write to the register
+        if (stmt->initializer) {
+            llvm::Value* initValue = generateExpression(stmt->initializer.get());
+            if (initValue) {
+                // Generate inline assembly to write to the register
+                std::string asmStr = "mov $0, %" + stmt->name;
+                llvm::FunctionType* asmFuncType = llvm::FunctionType::get(
+                    llvm::Type::getVoidTy(*context),
+                    {llvm::Type::getInt64Ty(*context)},
+                    false
+                );
+                llvm::InlineAsm* inlineAsm = llvm::InlineAsm::get(
+                    asmFuncType,
+                    asmStr,
+                    "r,~{" + stmt->name + "}",  // input constraint and clobber
+                    true  // has side effects
+                );
+                builder->CreateCall(inlineAsm, {initValue});
+            }
+        }
+        return;
+    }
+    
     llvm::Type* varType = convertType(stmt->type.get());
     if (!varType) {
         reportError("Failed to convert variable type: " + stmt->name);
@@ -311,6 +354,33 @@ void IRGenerator::generateVarDecl(VarDeclStmt* stmt) {
 }
 
 void IRGenerator::generateAssignment(AssignmentStmt* stmt) {
+    // Check if target is a register variable
+    if (auto* ident = dynamic_cast<IdentifierExpr*>(stmt->target.get())) {
+        auto valueIt = namedValues.find(ident->name);
+        if (valueIt != namedValues.end() && valueIt->second == nullptr) {
+            // This is a register variable - write to it using inline assembly
+            llvm::Value* value = generateExpression(stmt->value.get());
+            if (!value) {
+                return;
+            }
+            
+            std::string asmStr = "mov $0, %" + ident->name;
+            llvm::FunctionType* asmFuncType = llvm::FunctionType::get(
+                llvm::Type::getVoidTy(*context),
+                {llvm::Type::getInt64Ty(*context)},
+                false
+            );
+            llvm::InlineAsm* inlineAsm = llvm::InlineAsm::get(
+                asmFuncType,
+                asmStr,
+                "r,~{" + ident->name + "}",  // input constraint and clobber
+                true  // has side effects
+            );
+            builder->CreateCall(inlineAsm, {value});
+            return;
+        }
+    }
+    
     // Get the target address using the lvalue address generator
     llvm::Value* target = generateLValueAddress(stmt->target.get());
     if (!target) {
@@ -662,7 +732,26 @@ llvm::Value* IRGenerator::generateIdentifier(IdentifierExpr* expr) {
     
     // Otherwise it's a variable
     llvm::Value* value = namedValues[expr->name];
-    if (!value) {
+    if (value == nullptr) {
+        // Check if this is a register variable (nullptr indicates register)
+        auto typeIt = namedTypes.find(expr->name);
+        if (typeIt != namedTypes.end()) {
+            // This is a register variable - read from it using inline assembly
+            std::string asmStr = "mov %" + expr->name + ", $0";
+            llvm::FunctionType* asmFuncType = llvm::FunctionType::get(
+                llvm::Type::getInt64Ty(*context),
+                {},
+                false
+            );
+            llvm::InlineAsm* inlineAsm = llvm::InlineAsm::get(
+                asmFuncType,
+                asmStr,
+                "=r,~{" + expr->name + "}",  // output constraint and clobber
+                true  // has side effects
+            );
+            return builder->CreateCall(inlineAsm, {});
+        }
+        
         reportError("Undefined variable: " + expr->name);
         return nullptr;
     }

@@ -393,20 +393,20 @@ The implementation prioritizes core functionality first, with security-specific 
     - Test function pointer casts
     - _Requirements: 21.1-21.5_
 
-- [ ] 16. Implement register access
-  - [ ] 16.1 Parse register variable declarations
+- [x] 16. Implement register access
+  - [x] 16.1 Parse register variable declarations
     - Recognize register keyword in variable declarations
     - Parse platform-specific register names
     - Store register information in symbol table
     - _Requirements: 11.1, 11.2_
   
-  - [ ] 16.2 Generate IR for register variables
+  - [x] 16.2 Generate IR for register variables
     - Use LLVM register constraints
     - Generate IR for register reads
     - Generate IR for register writes
     - _Requirements: 11.3, 11.4_
   
-  - [ ]* 16.3 Write unit tests for register access
+  - [x]* 16.3 Write unit tests for register access
     - Test register variable parsing
     - Test register read/write IR generation
     - _Requirements: 11.1-11.4_

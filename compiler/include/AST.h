@@ -28,7 +28,7 @@ enum class UnaryOp {
 
 // Type representation
 enum class TypeKind {
-    U8, U16, U32, U64, Ptr, Array, Struct, FunctionPointer
+    U8, U16, U32, U64, Ptr, Array, Struct, FunctionPointer, Register
 };
 
 struct Type {
@@ -39,6 +39,7 @@ struct Type {
     std::string structName;              // For structs
     std::vector<std::unique_ptr<Type>> paramTypes;  // For function pointers
     std::unique_ptr<Type> returnType;    // For function pointers
+    std::string registerName;            // For register types (e.g., "rax", "rbx")
     
     Type(TypeKind k) : kind(k), arraySize(0) {}
     

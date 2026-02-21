@@ -40,6 +40,7 @@ enum class TokenType {
     TOK_UNSAFE,
     TOK_AS,
     TOK_PACKED,
+    TOK_REGISTER,
     
     // Operators
     TOK_PLUS,           // +

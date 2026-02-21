@@ -50,4 +50,9 @@ add_executable(function_pointer_test function_pointer_test.cpp)
 target_link_libraries(function_pointer_test lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
 add_test(NAME FunctionPointerTest COMMAND function_pointer_test)
 
+# Register access test (Task 16)
+add_executable(register_test register_test.cpp)
+target_link_libraries(register_test lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
+add_test(NAME RegisterTest COMMAND register_test)
+
 # Tests will be added as we implement components

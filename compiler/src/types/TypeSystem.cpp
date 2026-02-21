@@ -38,6 +38,10 @@ bool TypeSystem::areTypesEqual(const Type* t1, const Type* t2) {
                 }
             }
             return areTypesEqual(t1->returnType.get(), t2->returnType.get());
+            
+        case TypeKind::Register:
+            // Register types are equal if they refer to the same register
+            return t1->registerName == t2->registerName;
     }
     
     return false;
@@ -50,6 +54,12 @@ bool TypeSystem::areTypesCompatible(const Type* t1, const Type* t2) {
     
     // Exact type equality is always compatible
     if (areTypesEqual(t1, t2)) {
+        return true;
+    }
+    
+    // Register types are compatible with u64 (both ways)
+    if ((t1->kind == TypeKind::Register && t2->kind == TypeKind::U64) ||
+        (t1->kind == TypeKind::U64 && t2->kind == TypeKind::Register)) {
         return true;
     }
     
@@ -120,6 +130,8 @@ size_t TypeSystem::sizeOf(const Type* type, const std::unordered_map<std::string
         }
         case TypeKind::FunctionPointer:
             return 8; // Function pointers are 64-bit
+        case TypeKind::Register:
+            return 8; // Registers are 64-bit
     }
     
     return 0;
@@ -154,6 +166,8 @@ size_t TypeSystem::alignOf(const Type* type, const std::unordered_map<std::strin
             return 1;
         }
         case TypeKind::FunctionPointer:
+            return 8;
+        case TypeKind::Register:
             return 8;
     }
     
@@ -413,6 +427,8 @@ std::string TypeSystem::typeToString(const Type* type) {
             oss << ") -> " << typeToString(type->returnType.get());
             return oss.str();
         }
+        case TypeKind::Register:
+            return "register";
     }
     
     return "unknown";
