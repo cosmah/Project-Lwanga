@@ -283,15 +283,15 @@ The implementation prioritizes core functionality first, with security-specific 
     - Test nested structures
     - _Requirements: 16.1-16.7, 20.1-20.7_
 
-- [ ] 9. Implement system call interface
-  - [ ] 9.1 Generate IR for syscall expressions
+- [-] 9. Implement system call interface
+  - [x] 9.1 Generate IR for syscall expressions
     - Parse syscall number and arguments
     - Generate platform-specific inline assembly for syscalls
     - Map arguments to correct registers (x86_64: rdi, rsi, rdx, r10, r8, r9)
     - Return syscall result as u64
     - _Requirements: 4.1, 4.2, 4.3, 4.5, 4.6_
   
-  - [ ] 9.2 Add platform-specific syscall implementations
+  - [x] 9.2 Add platform-specific syscall implementations
     - Implement x86_64 Linux syscall (syscall instruction)
     - Implement ARM64 Linux syscall (svc #0 instruction)
     - Use LLVM target triple to select correct implementation

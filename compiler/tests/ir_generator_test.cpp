@@ -707,6 +707,292 @@ void testNestedStructs() {
     std::cout << "✓ Nested structs test passed\n";
 }
 
+void testSyscallBasic() {
+    std::string source = R"(
+        fn test_write() -> u64 {
+            let msg: ptr = 0x1000 as ptr;
+            let mut result: u64 = 0;
+            unsafe {
+                result = syscall(1, 1, msg, 13);
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    if (parser.hasErrors()) {
+        std::cout << "Parser errors:\n";
+        for (const auto& error : parser.getErrors()) {
+            std::cout << "  " << error.message << "\n";
+        }
+    }
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    bool typeCheckResult = checker.check(program.get());
+    if (!typeCheckResult) {
+        std::cout << "Type checker errors:\n";
+        for (const auto& error : checker.getErrors()) {
+            std::cout << "  " << error.message << "\n";
+        }
+    }
+    assert(typeCheckResult);
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Basic syscall test passed\n";
+}
+
+void testSyscallMultipleArgs() {
+    std::string source = R"(
+        fn test_syscall_6args() -> u64 {
+            let mut result: u64 = 0;
+            unsafe {
+                result = syscall(9, 0x1000, 4096, 3, 34, 0, 0);
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Syscall with multiple arguments test passed\n";
+}
+
+void testSyscallWithVariables() {
+    std::string source = R"(
+        fn test_syscall_vars() -> u64 {
+            let fd: u64 = 1;
+            let buf: ptr = 0x2000 as ptr;
+            let count: u64 = 100;
+            let mut result: u64 = 0;
+            unsafe {
+                result = syscall(1, fd, buf, count);
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Syscall with variables test passed\n";
+}
+
+void testSyscallInUnsafeBlock() {
+    std::string source = R"(
+        fn test_unsafe_syscall() -> u64 {
+            let mut result: u64 = 0;
+            unsafe {
+                result = syscall(60, 0);
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    bool typeCheckResult = checker.check(program.get());
+    if (!typeCheckResult) {
+        std::cout << "Type checker errors:\n";
+        for (const auto& error : checker.getErrors()) {
+            std::cout << "  " << error.message << "\n";
+        }
+    }
+    assert(typeCheckResult);
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Syscall in unsafe block test passed\n";
+}
+
+void testSyscallX86_64() {
+    std::string source = R"(
+        fn test_x86_syscall() -> u64 {
+            let mut result: u64 = 0;
+            unsafe {
+                result = syscall(1, 1, 0x1000, 10);
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    
+    // Set x86_64 target triple
+    generator.getModule()->setTargetTriple("x86_64-unknown-linux-gnu");
+    
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    // Verify the module
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    // Verify that the IR contains x86_64 syscall instruction
+    std::string moduleStr;
+    llvm::raw_string_ostream moduleStream(moduleStr);
+    generator.getModule()->print(moduleStream, nullptr);
+    moduleStream.flush();
+    
+    assert(moduleStr.find("syscall") != std::string::npos);
+    assert(moduleStr.find("rax") != std::string::npos);
+    
+    std::cout << "✓ x86_64 syscall generation test passed\n";
+}
+
+void testSyscallARM64() {
+    std::string source = R"(
+        fn test_arm_syscall() -> u64 {
+            let mut result: u64 = 0;
+            unsafe {
+                result = syscall(64, 1, 0x2000, 20);
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    
+    // Set ARM64 target triple
+    generator.getModule()->setTargetTriple("aarch64-unknown-linux-gnu");
+    
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    // Verify the module
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    // Verify that the IR contains ARM64 svc instruction
+    std::string moduleStr;
+    llvm::raw_string_ostream moduleStream(moduleStr);
+    generator.getModule()->print(moduleStream, nullptr);
+    moduleStream.flush();
+    
+    assert(moduleStr.find("svc") != std::string::npos);
+    assert(moduleStr.find("x0") != std::string::npos || moduleStr.find("x8") != std::string::npos);
+    
+    std::cout << "✓ ARM64 syscall generation test passed\n";
+}
+
 int main() {
     std::cout << "Running IR Generator tests...\n\n";
     
@@ -729,6 +1015,12 @@ int main() {
     testStructOperations();
     testPackedStruct();
     testNestedStructs();
+    testSyscallBasic();
+    testSyscallMultipleArgs();
+    testSyscallWithVariables();
+    testSyscallInUnsafeBlock();
+    testSyscallX86_64();
+    testSyscallARM64();
     
     std::cout << "\n✓ All IR Generator tests passed!\n";
     return 0;

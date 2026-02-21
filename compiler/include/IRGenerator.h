@@ -90,6 +90,7 @@ private:
     llvm::Value* generateStructInit(StructInitExpr* expr);
     llvm::Value* generateFieldAccess(FieldAccessExpr* expr);
     llvm::Value* generateArrayIndex(ArrayIndexExpr* expr);
+    llvm::Value* generateSyscall(SyscallExpr* expr);
     
     // Generate lvalue address (for address-of operator and assignments)
     llvm::Value* generateLValueAddress(ExprAST* expr);

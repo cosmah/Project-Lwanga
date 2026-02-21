@@ -1,5 +1,6 @@
 #include "IRGenerator.h"
 #include <llvm/IR/Verifier.h>
+#include <llvm/IR/InlineAsm.h>
 #include <iostream>
 
 namespace lwanga {
@@ -465,6 +466,8 @@ llvm::Value* IRGenerator::generateExpression(ExprAST* expr) {
         return generateFieldAccess(fieldAccess);
     } else if (auto* arrayIndex = dynamic_cast<ArrayIndexExpr*>(expr)) {
         return generateArrayIndex(arrayIndex);
+    } else if (auto* syscall = dynamic_cast<SyscallExpr*>(expr)) {
+        return generateSyscall(syscall);
     }
     
     return nullptr;
@@ -826,6 +829,116 @@ llvm::Value* IRGenerator::generateArrayIndex(ArrayIndexExpr* expr) {
     
     // Load the element value with the correct type
     return builder->CreateLoad(elemType, elemAddr, "elemval");
+}
+
+llvm::Value* IRGenerator::generateSyscall(SyscallExpr* expr) {
+    // Generate syscall using platform-specific inline assembly
+    // For x86_64 Linux: syscall instruction with args in rdi, rsi, rdx, r10, r8, r9
+    // For ARM64 Linux: svc #0 instruction
+    
+    // Get target triple to determine platform
+    std::string targetTriple = module->getTargetTriple();
+    bool isX86_64 = targetTriple.find("x86_64") != std::string::npos || 
+                    targetTriple.find("x86-64") != std::string::npos ||
+                    targetTriple.empty(); // Default to x86_64 if no triple set
+    bool isARM64 = targetTriple.find("aarch64") != std::string::npos ||
+                   targetTriple.find("arm64") != std::string::npos;
+    
+    if (!isX86_64 && !isARM64) {
+        reportError("Syscalls only supported on x86_64 and ARM64 platforms");
+        return nullptr;
+    }
+    
+    // Generate syscall number
+    llvm::Value* syscallNum = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), expr->syscallNumber);
+    
+    // Generate arguments (up to 6 arguments supported)
+    std::vector<llvm::Value*> args;
+    args.push_back(syscallNum);
+    
+    for (size_t i = 0; i < expr->args.size() && i < 6; i++) {
+        llvm::Value* arg = generateExpression(expr->args[i].get());
+        if (!arg) {
+            return nullptr;
+        }
+        
+        // Ensure argument is u64
+        if (arg->getType() != llvm::Type::getInt64Ty(*context)) {
+            if (arg->getType()->isIntegerTy()) {
+                arg = builder->CreateZExt(arg, llvm::Type::getInt64Ty(*context), "syscall_arg_ext");
+            } else if (arg->getType()->isPointerTy()) {
+                arg = builder->CreatePtrToInt(arg, llvm::Type::getInt64Ty(*context), "syscall_arg_ptr");
+            } else {
+                reportError("Syscall argument must be integer or pointer type");
+                return nullptr;
+            }
+        }
+        
+        args.push_back(arg);
+    }
+    
+    // Pad with zeros if fewer than 6 arguments
+    while (args.size() < 7) { // syscall number + 6 args
+        args.push_back(llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0));
+    }
+    
+    // Create inline assembly based on platform
+    std::string asmStr;
+    std::string constraints;
+    
+    if (isX86_64) {
+        // x86_64 Linux syscall ABI:
+        // syscall number in rax, args in rdi, rsi, rdx, r10, r8, r9
+        // Result returned in rax
+        asmStr = "movq $0, %rax\n\t"
+                 "movq $1, %rdi\n\t"
+                 "movq $2, %rsi\n\t"
+                 "movq $3, %rdx\n\t"
+                 "movq $4, %r10\n\t"
+                 "movq $5, %r8\n\t"
+                 "movq $6, %r9\n\t"
+                 "syscall";
+        
+        // Constraints: all inputs are registers, output is rax
+        // "=r" means output in register, "r" means input in register
+        constraints = "={rax},r,r,r,r,r,r,~{rcx},~{r11},~{memory}";
+    } else { // ARM64
+        // ARM64 Linux syscall ABI:
+        // syscall number in x8, args in x0-x5
+        // Result returned in x0
+        asmStr = "mov x8, $0\n\t"
+                 "mov x0, $1\n\t"
+                 "mov x1, $2\n\t"
+                 "mov x2, $3\n\t"
+                 "mov x3, $4\n\t"
+                 "mov x4, $5\n\t"
+                 "mov x5, $6\n\t"
+                 "svc #0";
+        
+        // Constraints for ARM64
+        constraints = "={x0},r,r,r,r,r,r,~{x8},~{memory}";
+    }
+    
+    // Create function type for inline assembly
+    std::vector<llvm::Type*> asmParamTypes(7, llvm::Type::getInt64Ty(*context));
+    llvm::FunctionType* asmFuncType = llvm::FunctionType::get(
+        llvm::Type::getInt64Ty(*context),
+        asmParamTypes,
+        false
+    );
+    
+    // Create inline assembly
+    llvm::InlineAsm* inlineAsm = llvm::InlineAsm::get(
+        asmFuncType,
+        asmStr,
+        constraints,
+        true,  // hasSideEffects
+        false, // isAlignStack
+        llvm::InlineAsm::AD_ATT // Dialect (AT&T syntax)
+    );
+    
+    // Call the inline assembly
+    return builder->CreateCall(inlineAsm, args, "syscall_result");
 }
 
 llvm::Value* IRGenerator::generateLValueAddress(ExprAST* expr) {
