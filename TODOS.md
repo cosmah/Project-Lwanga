@@ -106,4 +106,4 @@ When adding a TODO to the codebase:
 - **Design Decisions:** 0
 - **Completed TODOs:** 9
 
-**Last Updated:** Task 13 completion (encrypted string literals)
+**Last Updated:** Task 15 completion (function pointers)

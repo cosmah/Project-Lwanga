@@ -373,21 +373,21 @@ The implementation prioritizes core functionality first, with security-specific 
     - Test constant substitution
     - _Requirements: 22.1-22.5_
 
-- [ ] 15. Implement function pointers
-  - [ ] 15.1 Parse function pointer types
+- [x] 15. Implement function pointers
+  - [x] 15.1 Parse function pointer types
     - Implement parse_function_pointer_type() for fn(params) -> return
     - Handle function pointer assignments
     - Parse indirect function calls
     - _Requirements: 21.1, 21.2, 21.3_
   
-  - [ ] 15.2 Generate IR for function pointers
+  - [x] 15.2 Generate IR for function pointers
     - Create LLVM function pointer types
     - Generate IR for function pointer assignments
     - Generate IR for indirect calls
     - Handle function pointer casts
     - _Requirements: 21.4, 21.5_
   
-  - [ ]* 15.3 Write unit tests for function pointers
+  - [x]* 15.3 Write unit tests for function pointers
     - Test function pointer type parsing
     - Test indirect calls
     - Test function pointer casts

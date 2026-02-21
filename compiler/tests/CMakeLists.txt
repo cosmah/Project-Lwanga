@@ -45,4 +45,9 @@ add_executable(enc_property_test enc_property_test.cpp)
 target_link_libraries(enc_property_test lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
 add_test(NAME EncPropertyTest COMMAND enc_property_test)
 
+# Function pointer test (Task 15)
+add_executable(function_pointer_test function_pointer_test.cpp)
+target_link_libraries(function_pointer_test lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
+add_test(NAME FunctionPointerTest COMMAND function_pointer_test)
+
 # Tests will be added as we implement components

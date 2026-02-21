@@ -252,6 +252,23 @@ bool TypeSystem::canCast(const Type* from, const Type* to) {
         return true;
     }
     
+    // Function pointers can be cast to ptr and vice versa
+    if ((from->kind == TypeKind::FunctionPointer && to->kind == TypeKind::Ptr) ||
+        (from->kind == TypeKind::Ptr && to->kind == TypeKind::FunctionPointer)) {
+        return true;
+    }
+    
+    // Function pointers can be cast to numeric types and vice versa
+    if ((from->kind == TypeKind::FunctionPointer && isNumericType(to)) ||
+        (isNumericType(from) && to->kind == TypeKind::FunctionPointer)) {
+        return true;
+    }
+    
+    // Function pointers can be cast to other function pointer types
+    if (from->kind == TypeKind::FunctionPointer && to->kind == TypeKind::FunctionPointer) {
+        return true;
+    }
+    
     return false;
 }
 

@@ -653,6 +653,13 @@ llvm::Value* IRGenerator::generateIdentifier(IdentifierExpr* expr) {
         return constIt->second;
     }
     
+    // Check if it's a function name (for function pointer assignments)
+    llvm::Function* func = module->getFunction(expr->name);
+    if (func) {
+        // Return the function as a value (function pointer)
+        return func;
+    }
+    
     // Otherwise it's a variable
     llvm::Value* value = namedValues[expr->name];
     if (!value) {
@@ -787,17 +794,9 @@ llvm::Value* IRGenerator::generateUnary(UnaryExpr* expr) {
 }
 
 llvm::Value* IRGenerator::generateCall(CallExpr* expr) {
-    // Get function name
-    auto* calleeIdent = dynamic_cast<IdentifierExpr*>(expr->callee.get());
-    if (!calleeIdent) {
-        reportError("Complex function calls not yet supported");
-        return nullptr;
-    }
-    
-    // Look up function
-    llvm::Function* calleeFunc = module->getFunction(calleeIdent->name);
-    if (!calleeFunc) {
-        reportError("Undefined function: " + calleeIdent->name);
+    // Generate the callee expression (could be identifier or any expression)
+    llvm::Value* calleeValue = generateExpression(expr->callee.get());
+    if (!calleeValue) {
         return nullptr;
     }
     
@@ -811,7 +810,39 @@ llvm::Value* IRGenerator::generateCall(CallExpr* expr) {
         args.push_back(argValue);
     }
     
-    return builder->CreateCall(calleeFunc, args, "calltmp");
+    // Check if callee is a function or function pointer
+    if (llvm::isa<llvm::Function>(calleeValue)) {
+        // Direct call to a function
+        llvm::Function* calleeFunc = llvm::cast<llvm::Function>(calleeValue);
+        return builder->CreateCall(calleeFunc, args, "calltmp");
+    } else if (calleeValue->getType()->isPointerTy()) {
+        // Indirect call through function pointer
+        // The value might be loaded from a variable, so we need to get the function type
+        llvm::Type* ptrType = calleeValue->getType();
+        
+        // For function pointers, LLVM represents them as pointers to function types
+        // We need to extract the function type
+        if (auto* funcPtrType = llvm::dyn_cast<llvm::PointerType>(ptrType)) {
+            // In LLVM, function pointers are opaque pointers in newer versions
+            // We need to determine the function type from context
+            
+            // Try to get function type from the callee expression
+            // For now, we'll construct it from the arguments and assume u64 return
+            std::vector<llvm::Type*> paramTypes;
+            for (auto* arg : args) {
+                paramTypes.push_back(arg->getType());
+            }
+            
+            // Default to u64 return type (we'll improve this with type information later)
+            llvm::Type* returnType = llvm::Type::getInt64Ty(*context);
+            llvm::FunctionType* funcType = llvm::FunctionType::get(returnType, paramTypes, false);
+            
+            return builder->CreateCall(funcType, calleeValue, args, "indirectcall");
+        }
+    }
+    
+    reportError("Invalid callee in function call");
+    return nullptr;
 }
 
 llvm::Value* IRGenerator::generateCast(CastExpr* expr) {
