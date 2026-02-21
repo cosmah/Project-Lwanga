@@ -322,19 +322,19 @@ The implementation prioritizes core functionality first, with security-specific 
     - Verify assembly preservation
     - _Requirements: 5.1-5.5_
 
-- [ ] 11. Implement naked functions
-  - [ ] 11.1 Add naked function attribute
+- [x] 11. Implement naked functions
+  - [x] 11.1 Add naked function attribute
     - Mark naked functions in AST during parsing
     - Apply LLVM "naked" attribute to function definitions
     - Disable prologue/epilogue generation
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
   
-  - [ ]* 11.2 Write unit tests for naked functions
+  - [x]* 11.2 Write unit tests for naked functions
     - Test naked function parsing
     - Verify no prologue/epilogue in generated code
     - _Requirements: 6.1-6.4_
 
-- [ ] 12. Checkpoint - Ensure core compilation pipeline works
+- [x] 12. Checkpoint - Ensure core compilation pipeline works
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 13. Implement encrypted string literals

@@ -997,8 +997,22 @@ llvm::Value* IRGenerator::generateSyscall(SyscallExpr* expr) {
         return nullptr;
     }
     
-    // Generate syscall number
-    llvm::Value* syscallNum = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), expr->syscallNumber);
+    // Generate syscall number (now an expression that can be a constant or literal)
+    llvm::Value* syscallNum = generateExpression(expr->syscallNumber.get());
+    if (!syscallNum) {
+        reportError("Failed to generate syscall number");
+        return nullptr;
+    }
+    
+    // Ensure syscall number is u64
+    if (syscallNum->getType() != llvm::Type::getInt64Ty(*context)) {
+        if (syscallNum->getType()->isIntegerTy()) {
+            syscallNum = builder->CreateZExt(syscallNum, llvm::Type::getInt64Ty(*context), "syscall_num_ext");
+        } else {
+            reportError("Syscall number must be an integer type");
+            return nullptr;
+        }
+    }
     
     // Generate arguments (up to 6 arguments supported)
     std::vector<llvm::Value*> args;

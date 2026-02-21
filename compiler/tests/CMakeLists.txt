@@ -30,4 +30,9 @@ add_executable(ir_generator_test ir_generator_test.cpp)
 target_link_libraries(ir_generator_test lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
 add_test(NAME IRGeneratorTest COMMAND ir_generator_test)
 
+# Comprehensive integration test (Tasks 1-11)
+add_executable(comprehensive_test comprehensive_test.cpp)
+target_link_libraries(comprehensive_test lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
+add_test(NAME ComprehensiveTest COMMAND comprehensive_test)
+
 # Tests will be added as we implement components

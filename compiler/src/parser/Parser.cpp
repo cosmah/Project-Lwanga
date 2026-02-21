@@ -405,7 +405,21 @@ std::unique_ptr<AsmStmt> Parser::parseAsm() {
     bool firstToken = true;
     
     // Parse assembly instructions (everything before first ':' or '}')
-    while (braceDepth > 0 && !check(TokenType::TOK_EOF) && !check(TokenType::TOK_COLON)) {
+    int safetyCounter = 0;
+    const int MAX_ASM_TOKENS = 10000;  // Safety limit
+    
+    while (braceDepth > 0 && !check(TokenType::TOK_EOF)) {
+        // Safety check to prevent infinite loops
+        if (++safetyCounter > MAX_ASM_TOKENS) {
+            reportError("Assembly block too large or infinite loop detected");
+            break;
+        }
+        
+        // Check for colon (start of constraints) - but only at depth 1
+        if (braceDepth == 1 && check(TokenType::TOK_COLON)) {
+            break;
+        }
+        
         if (check(TokenType::TOK_LEFT_BRACE)) {
             braceDepth++;
             asmCode += currentToken.lexeme;
@@ -777,23 +791,25 @@ std::unique_ptr<ExprAST> Parser::parsePrimaryExpr() {
 std::unique_ptr<ExprAST> Parser::parseSyscall() {
     expect(TokenType::TOK_LEFT_PAREN, "Expected '(' after 'syscall'");
     
-    if (!check(TokenType::TOK_NUMBER)) {
-        reportError("Expected syscall number");
+    // Parse syscall number as an expression (can be a constant or literal)
+    auto syscallNumExpr = parseExpression();
+    if (!syscallNumExpr) {
+        reportError("Expected syscall number expression");
         return nullptr;
     }
-    
-    uint64_t syscallNum = std::stoull(currentToken.lexeme);
-    advance();
     
     std::vector<std::unique_ptr<ExprAST>> args;
     
     while (match(TokenType::TOK_COMMA)) {
-        args.push_back(parseExpression());
+        auto arg = parseExpression();
+        if (arg) {
+            args.push_back(std::move(arg));
+        }
     }
     
     expect(TokenType::TOK_RIGHT_PAREN, "Expected ')' after syscall arguments");
     
-    return std::make_unique<SyscallExpr>(syscallNum, std::move(args));
+    return std::make_unique<SyscallExpr>(std::move(syscallNumExpr), std::move(args));
 }
 
 std::unique_ptr<ExprAST> Parser::parseEncBlock() {

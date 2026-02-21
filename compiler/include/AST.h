@@ -125,11 +125,11 @@ public:
 // Syscall expression
 class SyscallExpr : public ExprAST {
 public:
-    uint64_t syscallNumber;
+    std::unique_ptr<ExprAST> syscallNumber;  // Changed from uint64_t to support constants
     std::vector<std::unique_ptr<ExprAST>> args;
     
-    SyscallExpr(uint64_t num, std::vector<std::unique_ptr<ExprAST>> a)
-        : syscallNumber(num), args(std::move(a)) {}
+    SyscallExpr(std::unique_ptr<ExprAST> num, std::vector<std::unique_ptr<ExprAST>> a)
+        : syscallNumber(std::move(num)), args(std::move(a)) {}
 };
 
 // Encrypted string block

@@ -1348,6 +1348,57 @@ void testExtendedAsmWithClobbers() {
     std::cout << "✓ Extended asm with clobbers test passed\n";
 }
 
+void testNakedFunction() {
+    std::string source = R"(
+        naked fn shellcode() -> u64 {
+            asm {
+                mov rax, 60
+                xor rdi, rdi
+                syscall
+            }
+            return 0;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    if (parser.hasErrors()) {
+        std::cout << "Parser errors:\n";
+        for (const auto& error : parser.getErrors()) {
+            std::cout << "  " << error.message << "\n";
+        }
+    }
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    // Verify that the function has the naked attribute
+    llvm::Function* func = generator.getModule()->getFunction("shellcode");
+    assert(func != nullptr);
+    assert(func->hasFnAttribute(llvm::Attribute::Naked));
+    
+    std::cout << "✓ Naked function test passed\n";
+}
+
 int main() {
     std::cout << "Running IR Generator tests...\n\n";
     
@@ -1383,6 +1434,7 @@ int main() {
     testExtendedAsmWithOutput();
     testExtendedAsmWithInputOutput();
     testExtendedAsmWithClobbers();
+    testNakedFunction();
     
     std::cout << "\n✓ All IR Generator tests passed!\n";
     return 0;

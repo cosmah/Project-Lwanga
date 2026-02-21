@@ -233,7 +233,12 @@ void testSyscall() {
     
     auto* syscallExpr = dynamic_cast<SyscallExpr*>(varDecl->initializer.get());
     assert(syscallExpr != nullptr);
-    assert(syscallExpr->syscallNumber == 1);
+    
+    // Check that syscall number is an integer literal with value 1
+    auto* syscallNumLit = dynamic_cast<IntLiteralExpr*>(syscallExpr->syscallNumber.get());
+    assert(syscallNumLit != nullptr);
+    assert(syscallNumLit->value == 1);
+    
     assert(syscallExpr->args.size() == 3);
     
     std::cout << "✓ Syscall parsing test passed\n";

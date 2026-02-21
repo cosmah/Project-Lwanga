@@ -417,6 +417,15 @@ Type* TypeChecker::checkSyscall(SyscallExpr* expr) {
         reportError("Syscall must be in unsafe block");
     }
     
+    // Check syscall number expression
+    Type* syscallNumType = checkExpression(expr->syscallNumber.get());
+    if (syscallNumType && syscallNumType->kind != TypeKind::U64 && 
+        syscallNumType->kind != TypeKind::U32 && 
+        syscallNumType->kind != TypeKind::U16 && 
+        syscallNumType->kind != TypeKind::U8) {
+        reportError("Syscall number must be an integer type");
+    }
+    
     // Check all arguments
     for (auto& arg : expr->args) {
         checkExpression(arg.get());
