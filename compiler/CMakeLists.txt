@@ -55,6 +55,13 @@ add_library(lwanga_types
 target_include_directories(lwanga_types PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(lwanga_types lwanga_parser lwanga_lexer)
 
+# IR Generator library
+add_library(lwanga_codegen
+    src/codegen/IRGenerator.cpp
+)
+target_include_directories(lwanga_codegen PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
+
 # Compiler sources
 set(COMPILER_SOURCES
     src/driver/main.cpp
@@ -63,8 +70,8 @@ set(COMPILER_SOURCES
 # Create the compiler executable
 add_executable(lwangac ${COMPILER_SOURCES})
 
-# Link against LLVM, lexer, parser, and types
-target_link_libraries(lwangac lwanga_lexer lwanga_parser lwanga_types ${llvm_libs})
+# Link against LLVM, lexer, parser, types, and codegen
+target_link_libraries(lwangac lwanga_lexer lwanga_parser lwanga_types lwanga_codegen ${llvm_libs})
 
 # Compiler flags
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

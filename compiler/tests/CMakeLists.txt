@@ -25,4 +25,9 @@ add_executable(integration_test integration_test.cpp)
 target_link_libraries(integration_test lwanga_types lwanga_parser lwanga_lexer)
 add_test(NAME IntegrationTest COMMAND integration_test)
 
+# IR Generator test
+add_executable(ir_generator_test ir_generator_test.cpp)
+target_link_libraries(ir_generator_test lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
+add_test(NAME IRGeneratorTest COMMAND ir_generator_test)
+
 # Tests will be added as we implement components

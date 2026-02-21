@@ -1,0 +1,100 @@
+#ifndef LWANGA_IR_GENERATOR_H
+#define LWANGA_IR_GENERATOR_H
+
+#include "AST.h"
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Value.h>
+#include <memory>
+#include <unordered_map>
+#include <string>
+
+namespace lwanga {
+
+// IR generation for Lwanga AST
+class IRGenerator {
+public:
+    IRGenerator(const std::string& moduleName);
+    ~IRGenerator();
+    
+    // Generate IR for entire program
+    bool generate(ProgramAST* program);
+    
+    // Get the generated module
+    llvm::Module* getModule() { return module.get(); }
+    
+    // Check if there were errors during generation
+    bool hasErrors() const { return !errors.empty(); }
+    
+    // Get error messages
+    const std::vector<std::string>& getErrors() const { return errors; }
+
+private:
+    // LLVM context and module
+    std::unique_ptr<llvm::LLVMContext> context;
+    std::unique_ptr<llvm::Module> module;
+    std::unique_ptr<llvm::IRBuilder<>> builder;
+    
+    // Symbol table mapping variable names to LLVM values
+    std::unordered_map<std::string, llvm::Value*> namedValues;
+    
+    // Track allocated types for variables (needed for LLVM 18 opaque pointers)
+    std::unordered_map<std::string, llvm::Type*> namedTypes;
+    
+    // Track constants (map name to constant value)
+    std::unordered_map<std::string, llvm::Constant*> constants;
+    
+    // Current function being generated
+    llvm::Function* currentFunction;
+    
+    // Error messages
+    std::vector<std::string> errors;
+    
+    // Error reporting
+    void reportError(const std::string& message);
+    
+    // Type conversion
+    llvm::Type* convertType(const Type* type);
+    
+    // Generate declarations
+    void generateStructDeclarations(ProgramAST* program);
+    void generateFunctionDeclarations(ProgramAST* program);
+    void generateConstantDeclarations(ProgramAST* program);
+    
+    // Generate function
+    void generateFunction(FunctionAST* func);
+    
+    // Generate statements
+    void generateStatement(StmtAST* stmt);
+    void generateVarDecl(VarDeclStmt* stmt);
+    void generateAssignment(AssignmentStmt* stmt);
+    void generateIf(IfStmt* stmt);
+    void generateWhile(WhileStmt* stmt);
+    void generateReturn(ReturnStmt* stmt);
+    void generateExprStmt(ExprStmt* stmt);
+    
+    // Generate expressions
+    llvm::Value* generateExpression(ExprAST* expr);
+    llvm::Value* generateIntLiteral(IntLiteralExpr* expr);
+    llvm::Value* generateStringLiteral(StringLiteralExpr* expr);
+    llvm::Value* generateIdentifier(IdentifierExpr* expr);
+    llvm::Value* generateBinary(BinaryExpr* expr);
+    llvm::Value* generateUnary(UnaryExpr* expr);
+    llvm::Value* generateCall(CallExpr* expr);
+    llvm::Value* generateCast(CastExpr* expr);
+    
+    // Evaluate constant expressions at compile time
+    llvm::Constant* evaluateConstantExpression(ExprAST* expr);
+    
+    // Scope management
+    void enterScope();
+    void exitScope();
+    
+    // Helper to save/restore named values for nested scopes
+    std::vector<std::unordered_map<std::string, llvm::Value*>> scopeStack;
+};
+
+} // namespace lwanga
+
+#endif // LWANGA_IR_GENERATOR_H

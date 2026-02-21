@@ -177,47 +177,47 @@ The implementation prioritizes core functionality first, with security-specific 
 - [x] 5. Checkpoint - Ensure lexer, parser, and type checker work together
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Implement LLVM IR generation for basic constructs
-  - [ ] 6.1 Create IRGenerator class
+- [x] 6. Implement LLVM IR generation for basic constructs
+  - [x] 6.1 Create IRGenerator class
     - Initialize LLVM context, module, and builder
     - Create symbol table mapping AST symbols to LLVM values
     - Implement visitor pattern for AST traversal
     - _Requirements: 9.1_
   
-  - [ ] 6.2 Generate LLVM types from Lwanga types
+  - [x] 6.2 Generate LLVM types from Lwanga types
     - Map u8, u16, u32, u64 to LLVM integer types
     - Map ptr to LLVM pointer type
     - Map arrays to LLVM array types
     - Map structs to LLVM struct types
     - _Requirements: 3.1, 3.2_
   
-  - [ ] 6.3 Generate function declarations and definitions
+  - [x] 6.3 Generate function declarations and definitions
     - Create LLVM function prototypes from AST functions
     - Generate function bodies with entry basic blocks
     - Allocate stack space for local variables
     - _Requirements: 9.1_
   
-  - [ ] 6.4 Generate IR for expressions
+  - [x] 6.4 Generate IR for expressions
     - Generate IR for integer literals (constants)
     - Generate IR for binary operations (add, sub, mul, div, etc.)
     - Generate IR for unary operations (neg, not)
     - Generate IR for variable loads and stores
     - _Requirements: 9.1_
   
-  - [ ] 6.5 Generate IR for control flow
+  - [x] 6.5 Generate IR for control flow
     - Generate IR for if statements (conditional branches)
     - Generate IR for while loops (loop basic blocks)
     - Generate IR for return statements
     - Ensure proper basic block termination
     - _Requirements: 14.4_
   
-  - [ ] 6.6 Generate IR for function calls
+  - [x] 6.6 Generate IR for function calls
     - Generate IR for direct function calls
     - Pass arguments according to calling convention
     - Handle return values
     - _Requirements: 9.1_
   
-  - [ ]* 6.7 Write unit tests for IR generation
+  - [x]* 6.7 Write unit tests for IR generation
     - Test function generation
     - Test expression generation
     - Test control flow generation
