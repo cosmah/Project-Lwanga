@@ -46,6 +46,15 @@ add_library(lwanga_parser
 target_include_directories(lwanga_parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(lwanga_parser lwanga_lexer)
 
+# Type system library
+add_library(lwanga_types
+    src/types/TypeSystem.cpp
+    src/types/SymbolTable.cpp
+    src/types/TypeChecker.cpp
+)
+target_include_directories(lwanga_types PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(lwanga_types lwanga_parser lwanga_lexer)
+
 # Compiler sources
 set(COMPILER_SOURCES
     src/driver/main.cpp
@@ -54,8 +63,8 @@ set(COMPILER_SOURCES
 # Create the compiler executable
 add_executable(lwangac ${COMPILER_SOURCES})
 
-# Link against LLVM, lexer, and parser
-target_link_libraries(lwangac lwanga_lexer lwanga_parser ${llvm_libs})
+# Link against LLVM, lexer, parser, and types
+target_link_libraries(lwangac lwanga_lexer lwanga_parser lwanga_types ${llvm_libs})
 
 # Compiler flags
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

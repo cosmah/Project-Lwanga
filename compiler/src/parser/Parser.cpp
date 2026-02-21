@@ -395,20 +395,37 @@ std::unique_ptr<ReturnStmt> Parser::parseReturn() {
 std::unique_ptr<AsmStmt> Parser::parseAsm() {
     expect(TokenType::TOK_LEFT_BRACE, "Expected '{' after 'asm'");
     
-    // For now, we'll collect everything until the closing brace as assembly code
+    // Parse assembly code as string literals or raw tokens
     std::string asmCode;
     int braceDepth = 1;
+    bool firstToken = true;
     
     while (braceDepth > 0 && !check(TokenType::TOK_EOF)) {
         if (check(TokenType::TOK_LEFT_BRACE)) {
             braceDepth++;
+            asmCode += currentToken.lexeme;
+            advance();
         } else if (check(TokenType::TOK_RIGHT_BRACE)) {
             braceDepth--;
             if (braceDepth == 0) break;
+            asmCode += currentToken.lexeme;
+            advance();
+        } else if (check(TokenType::TOK_STRING)) {
+            // String literals contain assembly instructions
+            if (!firstToken && !asmCode.empty() && asmCode.back() != '\n') {
+                asmCode += "\n";
+            }
+            asmCode += currentToken.lexeme;
+            advance();
+        } else {
+            // Collect raw tokens (for inline assembly syntax)
+            if (!firstToken && !asmCode.empty() && asmCode.back() != ' ' && asmCode.back() != '\n') {
+                asmCode += " ";
+            }
+            asmCode += currentToken.lexeme;
+            advance();
         }
-        
-        asmCode += currentToken.lexeme + " ";
-        advance();
+        firstToken = false;
     }
     
     expect(TokenType::TOK_RIGHT_BRACE, "Expected '}' after asm block");

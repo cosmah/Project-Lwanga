@@ -34,6 +34,7 @@ enum class TypeKind {
 struct Type {
     TypeKind kind;
     std::unique_ptr<Type> elementType;  // For pointers and arrays
+    std::unique_ptr<Type> pointeeType;  // For pointers (what they point to)
     size_t arraySize;                    // For arrays
     std::string structName;              // For structs
     std::vector<std::unique_ptr<Type>> paramTypes;  // For function pointers
@@ -46,6 +47,11 @@ struct Type {
     static std::unique_ptr<Type> makeU32() { return std::make_unique<Type>(TypeKind::U32); }
     static std::unique_ptr<Type> makeU64() { return std::make_unique<Type>(TypeKind::U64); }
     static std::unique_ptr<Type> makePtr() { return std::make_unique<Type>(TypeKind::Ptr); }
+    static std::unique_ptr<Type> makePtrTo(std::unique_ptr<Type> pointee) {
+        auto ptr = std::make_unique<Type>(TypeKind::Ptr);
+        ptr->pointeeType = std::move(pointee);
+        return ptr;
+    }
 };
 
 // Base AST node

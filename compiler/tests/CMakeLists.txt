@@ -15,4 +15,9 @@ add_executable(parser_test parser_test.cpp)
 target_link_libraries(parser_test lwanga_parser lwanga_lexer)
 add_test(NAME ParserTest COMMAND parser_test)
 
+# TypeSystem test
+add_executable(type_system_test type_system_test.cpp)
+target_link_libraries(type_system_test lwanga_types)
+add_test(NAME TypeSystemTest COMMAND type_system_test)
+
 # Tests will be added as we implement components
