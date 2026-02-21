@@ -411,20 +411,20 @@ The implementation prioritizes core functionality first, with security-specific 
     - Test register read/write IR generation
     - _Requirements: 11.1-11.4_
 
-- [ ] 17. Implement unsafe blocks
-  - [ ] 17.1 Parse unsafe blocks
+- [x] 17. Implement unsafe blocks
+  - [x] 17.1 Parse unsafe blocks
     - Implement parse_unsafe_block() for unsafe { code }
     - Track unsafe context during type checking
     - _Requirements: 28.1_
   
-  - [ ] 17.2 Enforce unsafe operation restrictions
+  - [x] 17.2 Enforce unsafe operation restrictions
     - Allow unchecked pointer operations only in unsafe blocks
     - Allow inline assembly only in unsafe blocks or naked functions
     - Allow direct memory access only in unsafe blocks
     - Report errors for unsafe operations outside unsafe context
     - _Requirements: 28.2, 28.3, 28.4, 28.5_
   
-  - [ ]* 17.3 Write unit tests for unsafe blocks
+  - [x]* 17.3 Write unit tests for unsafe blocks
     - Test unsafe block parsing
     - Test unsafe operation enforcement
     - Test error reporting for unsafe violations

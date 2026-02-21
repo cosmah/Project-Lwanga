@@ -106,4 +106,4 @@ When adding a TODO to the codebase:
 - **Design Decisions:** 0
 - **Completed TODOs:** 9
 
-**Last Updated:** Task 16 completion (register access)
+**Last Updated:** Task 17 completion (unsafe blocks)

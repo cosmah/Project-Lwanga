@@ -55,4 +55,9 @@ add_executable(register_test register_test.cpp)
 target_link_libraries(register_test lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
 add_test(NAME RegisterTest COMMAND register_test)
 
+# Unsafe block test (Task 17)
+add_executable(unsafe_test unsafe_test.cpp)
+target_link_libraries(unsafe_test lwanga_types lwanga_parser lwanga_lexer)
+add_test(NAME UnsafeTest COMMAND unsafe_test)
+
 # Tests will be added as we implement components
