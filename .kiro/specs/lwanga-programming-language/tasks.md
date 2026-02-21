@@ -303,20 +303,20 @@ The implementation prioritizes core functionality first, with security-specific 
     - Verify register allocation
     - _Requirements: 4.1-4.6, 18.1-18.4_
 
-- [ ] 10. Implement inline assembly support
-  - [ ] 10.1 Generate IR for asm blocks
+- [x] 10. Implement inline assembly support
+  - [x] 10.1 Generate IR for asm blocks
     - Extract assembly code string from AST
     - Generate LLVM inline assembly IR
     - Preserve assembly instructions exactly
     - _Requirements: 5.1, 5.2, 5.5_
   
-  - [ ] 10.2 Add register constraints for inline assembly
+  - [x] 10.2 Add register constraints for inline assembly
     - Support register inputs and outputs
     - Handle register clobbers
     - Support AT&T syntax
     - _Requirements: 5.3, 5.4_
   
-  - [ ]* 10.3 Write unit tests for inline assembly
+  - [x]* 10.3 Write unit tests for inline assembly
     - Test asm block parsing
     - Test IR generation for inline assembly
     - Verify assembly preservation

@@ -281,6 +281,134 @@ void testAsmBlock() {
     std::cout << "✓ Asm block parsing test passed\n";
 }
 
+void testExtendedAsmWithOutput() {
+    std::string source = R"(
+        fn test() -> u64 {
+            let mut result: u64 = 0;
+            unsafe {
+                asm {
+                    mov $42, %0
+                    : "=r"(result)
+                }
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    if (parser.hasErrors()) {
+        std::cout << "Parser errors:\n";
+        for (const auto& error : parser.getErrors()) {
+            std::cout << "  " << error.message << "\n";
+        }
+    }
+    
+    assert(!parser.hasErrors());
+    assert(program->functions.size() == 1);
+    
+    auto* unsafeBlock = dynamic_cast<UnsafeBlockStmt*>(program->functions[0]->body[1].get());
+    assert(unsafeBlock != nullptr);
+    
+    auto* asmStmt = dynamic_cast<AsmStmt*>(unsafeBlock->body[0].get());
+    assert(asmStmt != nullptr);
+    assert(asmStmt->outputs.size() == 1);
+    assert(asmStmt->outputs[0].constraint == "=r");
+    
+    std::cout << "✓ Extended asm with output parsing test passed\n";
+}
+
+void testExtendedAsmWithInputOutput() {
+    std::string source = R"(
+        fn test(x: u64) -> u64 {
+            let mut result: u64 = 0;
+            unsafe {
+                asm {
+                    add $1, %1
+                    mov %1, %0
+                    : "=r"(result)
+                    : "r"(x)
+                }
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    if (parser.hasErrors()) {
+        std::cout << "Parser errors:\n";
+        for (const auto& error : parser.getErrors()) {
+            std::cout << "  " << error.message << "\n";
+        }
+    }
+    
+    assert(!parser.hasErrors());
+    assert(program->functions.size() == 1);
+    
+    auto* unsafeBlock = dynamic_cast<UnsafeBlockStmt*>(program->functions[0]->body[1].get());
+    assert(unsafeBlock != nullptr);
+    
+    auto* asmStmt = dynamic_cast<AsmStmt*>(unsafeBlock->body[0].get());
+    assert(asmStmt != nullptr);
+    assert(asmStmt->outputs.size() == 1);
+    assert(asmStmt->inputs.size() == 1);
+    assert(asmStmt->outputs[0].constraint == "=r");
+    assert(asmStmt->inputs[0].constraint == "r");
+    
+    std::cout << "✓ Extended asm with input/output parsing test passed\n";
+}
+
+void testExtendedAsmWithClobbers() {
+    std::string source = R"(
+        fn test() -> u64 {
+            let mut result: u64 = 0;
+            unsafe {
+                asm {
+                    xor %rax, %rax
+                    mov $100, %rax
+                    mov %rax, %0
+                    : "=r"(result)
+                    :
+                    : "rax", "memory"
+                }
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    if (parser.hasErrors()) {
+        std::cout << "Parser errors:\n";
+        for (const auto& error : parser.getErrors()) {
+            std::cout << "  " << error.message << "\n";
+        }
+    }
+    
+    assert(!parser.hasErrors());
+    assert(program->functions.size() == 1);
+    
+    auto* unsafeBlock = dynamic_cast<UnsafeBlockStmt*>(program->functions[0]->body[1].get());
+    assert(unsafeBlock != nullptr);
+    
+    auto* asmStmt = dynamic_cast<AsmStmt*>(unsafeBlock->body[0].get());
+    assert(asmStmt != nullptr);
+    assert(asmStmt->outputs.size() == 1);
+    assert(asmStmt->inputs.size() == 0);
+    assert(asmStmt->clobbers.size() == 2);
+    assert(asmStmt->clobbers[0] == "rax");
+    assert(asmStmt->clobbers[1] == "memory");
+    
+    std::cout << "✓ Extended asm with clobbers parsing test passed\n";
+}
+
 void testUnsafeBlock() {
     std::string source = R"(
         fn test() -> u64 {
@@ -501,6 +629,9 @@ int main() {
     testSyscall();
     testEncBlock();
     testAsmBlock();
+    testExtendedAsmWithOutput();
+    testExtendedAsmWithInputOutput();
+    testExtendedAsmWithClobbers();
     testUnsafeBlock();
     testStructDefinition();
     testStructInitialization();

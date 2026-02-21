@@ -404,7 +404,8 @@ std::unique_ptr<AsmStmt> Parser::parseAsm() {
     int braceDepth = 1;
     bool firstToken = true;
     
-    while (braceDepth > 0 && !check(TokenType::TOK_EOF)) {
+    // Parse assembly instructions (everything before first ':' or '}')
+    while (braceDepth > 0 && !check(TokenType::TOK_EOF) && !check(TokenType::TOK_COLON)) {
         if (check(TokenType::TOK_LEFT_BRACE)) {
             braceDepth++;
             asmCode += currentToken.lexeme;
@@ -432,9 +433,126 @@ std::unique_ptr<AsmStmt> Parser::parseAsm() {
         firstToken = false;
     }
     
+    // Check for extended asm syntax (outputs : inputs : clobbers)
+    std::vector<AsmOperand> outputs;
+    std::vector<AsmOperand> inputs;
+    std::vector<std::string> clobbers;
+    
+    // Parse output operands (if present)
+    if (check(TokenType::TOK_COLON)) {
+        advance(); // consume ':'
+        outputs = parseAsmOperands();
+    }
+    
+    // Parse input operands (if present)
+    if (check(TokenType::TOK_COLON)) {
+        advance(); // consume ':'
+        inputs = parseAsmOperands();
+    }
+    
+    // Parse clobbers (if present)
+    if (check(TokenType::TOK_COLON)) {
+        advance(); // consume ':'
+        clobbers = parseAsmClobbers();
+    }
+    
     expect(TokenType::TOK_RIGHT_BRACE, "Expected '}' after asm block");
     
-    return std::make_unique<AsmStmt>(asmCode);
+    // Create appropriate AsmStmt based on whether we have operands
+    if (outputs.empty() && inputs.empty() && clobbers.empty()) {
+        return std::make_unique<AsmStmt>(asmCode);
+    } else {
+        return std::make_unique<AsmStmt>(asmCode, std::move(outputs), std::move(inputs), std::move(clobbers));
+    }
+}
+
+std::vector<AsmOperand> Parser::parseAsmOperands() {
+    std::vector<AsmOperand> operands;
+    
+    // Parse comma-separated list of operands: "constraint"(expression)
+    while (!check(TokenType::TOK_COLON) && !check(TokenType::TOK_RIGHT_BRACE) && !check(TokenType::TOK_EOF)) {
+        // Skip whitespace/newlines
+        while (check(TokenType::TOK_IDENTIFIER) && currentToken.lexeme == "\n") {
+            advance();
+        }
+        
+        if (check(TokenType::TOK_COLON) || check(TokenType::TOK_RIGHT_BRACE)) {
+            break;
+        }
+        
+        // Parse constraint string
+        if (!check(TokenType::TOK_STRING)) {
+            reportError("Expected constraint string in asm operand");
+            return operands;
+        }
+        std::string constraint = currentToken.lexeme;
+        advance();
+        
+        // Expect '('
+        if (!check(TokenType::TOK_LEFT_PAREN)) {
+            reportError("Expected '(' after constraint in asm operand");
+            return operands;
+        }
+        advance();
+        
+        // Parse expression (variable reference)
+        auto expr = parseExpression();
+        if (!expr) {
+            reportError("Expected expression in asm operand");
+            return operands;
+        }
+        
+        // Expect ')'
+        if (!check(TokenType::TOK_RIGHT_PAREN)) {
+            reportError("Expected ')' after expression in asm operand");
+            return operands;
+        }
+        advance();
+        
+        operands.push_back(AsmOperand(constraint, std::move(expr)));
+        
+        // Check for comma (more operands)
+        if (check(TokenType::TOK_COMMA)) {
+            advance();
+        } else {
+            break;
+        }
+    }
+    
+    return operands;
+}
+
+std::vector<std::string> Parser::parseAsmClobbers() {
+    std::vector<std::string> clobbers;
+    
+    // Parse comma-separated list of clobber strings
+    while (!check(TokenType::TOK_RIGHT_BRACE) && !check(TokenType::TOK_EOF)) {
+        // Skip whitespace/newlines
+        while (check(TokenType::TOK_IDENTIFIER) && currentToken.lexeme == "\n") {
+            advance();
+        }
+        
+        if (check(TokenType::TOK_RIGHT_BRACE)) {
+            break;
+        }
+        
+        // Parse clobber string (register name or "memory")
+        if (!check(TokenType::TOK_STRING)) {
+            reportError("Expected clobber string");
+            return clobbers;
+        }
+        clobbers.push_back(currentToken.lexeme);
+        advance();
+        
+        // Check for comma (more clobbers)
+        if (check(TokenType::TOK_COMMA)) {
+            advance();
+        } else {
+            break;
+        }
+    }
+    
+    return clobbers;
 }
 
 std::unique_ptr<UnsafeBlockStmt> Parser::parseUnsafeBlock() {

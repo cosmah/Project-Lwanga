@@ -77,6 +77,7 @@ private:
     void generateReturn(ReturnStmt* stmt);
     void generateExprStmt(ExprStmt* stmt);
     void generateUnsafeBlock(UnsafeBlockStmt* stmt);
+    void generateAsm(AsmStmt* stmt);
     
     // Generate expressions
     llvm::Value* generateExpression(ExprAST* expr);

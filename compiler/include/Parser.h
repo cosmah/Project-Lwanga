@@ -63,6 +63,8 @@ private:
     std::unique_ptr<WhileStmt> parseWhile();
     std::unique_ptr<ReturnStmt> parseReturn();
     std::unique_ptr<AsmStmt> parseAsm();
+    std::vector<AsmOperand> parseAsmOperands();
+    std::vector<std::string> parseAsmClobbers();
     std::unique_ptr<UnsafeBlockStmt> parseUnsafeBlock();
     std::vector<std::unique_ptr<StmtAST>> parseBlock();
     

@@ -250,12 +250,30 @@ public:
     explicit ExprStmt(std::unique_ptr<ExprAST> e) : expr(std::move(e)) {}
 };
 
+// Inline assembly operand (for inputs/outputs)
+struct AsmOperand {
+    std::string constraint;  // e.g., "=r", "r", "m"
+    std::unique_ptr<ExprAST> expr;  // variable reference
+    
+    AsmOperand(const std::string& c, std::unique_ptr<ExprAST> e)
+        : constraint(c), expr(std::move(e)) {}
+};
+
 // Inline assembly block
 class AsmStmt : public StmtAST {
 public:
     std::string asmCode;
+    std::vector<AsmOperand> outputs;   // output operands
+    std::vector<AsmOperand> inputs;    // input operands
+    std::vector<std::string> clobbers; // clobbered registers
     
     explicit AsmStmt(const std::string& code) : asmCode(code) {}
+    
+    AsmStmt(const std::string& code,
+            std::vector<AsmOperand> out,
+            std::vector<AsmOperand> in,
+            std::vector<std::string> clob)
+        : asmCode(code), outputs(std::move(out)), inputs(std::move(in)), clobbers(std::move(clob)) {}
 };
 
 // Unsafe block

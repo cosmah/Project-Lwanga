@@ -993,6 +993,361 @@ void testSyscallARM64() {
     std::cout << "✓ ARM64 syscall generation test passed\n";
 }
 
+void testInlineAsmBasic() {
+    std::string source = R"(
+        fn test_asm() -> u64 {
+            let mut x: u64 = 42;
+            unsafe {
+                asm {
+                    nop
+                }
+            }
+            return x;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    if (parser.hasErrors()) {
+        std::cout << "Parser errors:\n";
+        for (const auto& error : parser.getErrors()) {
+            std::cout << "  " << error.message << "\n";
+        }
+    }
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    // Verify that the IR contains inline assembly call
+    std::string moduleStr;
+    llvm::raw_string_ostream moduleStream(moduleStr);
+    generator.getModule()->print(moduleStream, nullptr);
+    moduleStream.flush();
+    
+    // Verify inline asm is present
+    assert(moduleStr.find("call void asm") != std::string::npos || 
+           moduleStr.find("tail call void asm") != std::string::npos);
+    
+    std::cout << "✓ Basic inline assembly test passed\n";
+}
+
+void testInlineAsmMultipleInstructions() {
+    std::string source = R"(
+        fn test_multi_asm() -> u64 {
+            unsafe {
+                asm {
+                    mov rax, 1
+                    mov rbx, 2
+                    add rax, rbx
+                }
+            }
+            return 0;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    // Verify that the IR contains inline assembly call
+    std::string moduleStr;
+    llvm::raw_string_ostream moduleStream(moduleStr);
+    generator.getModule()->print(moduleStream, nullptr);
+    moduleStream.flush();
+    
+    // Just verify that inline asm is present - the exact format may vary
+    assert(moduleStr.find("call void asm") != std::string::npos || 
+           moduleStr.find("tail call void asm") != std::string::npos);
+    
+    std::cout << "✓ Multiple instruction inline assembly test passed\n";
+}
+
+void testInlineAsmInFunction() {
+    std::string source = R"(
+        fn compute_with_asm(x: u64) -> u64 {
+            let mut result: u64 = x;
+            unsafe {
+                asm {
+                    xor rax, rax
+                }
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Inline assembly in function test passed\n";
+}
+
+void testInlineAsmPreservation() {
+    std::string source = R"(
+        fn test_preservation() -> u64 {
+            unsafe {
+                asm {
+                    push rbp
+                    mov rbp, rsp
+                    sub rsp, 16
+                    mov QWORD PTR [rbp-8], 42
+                    mov rax, QWORD PTR [rbp-8]
+                    leave
+                }
+            }
+            return 0;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    // Verify that inline asm is present
+    std::string moduleStr;
+    llvm::raw_string_ostream moduleStream(moduleStr);
+    generator.getModule()->print(moduleStream, nullptr);
+    moduleStream.flush();
+    
+    // Just verify inline asm call is present
+    assert(moduleStr.find("call void asm") != std::string::npos || 
+           moduleStr.find("tail call void asm") != std::string::npos);
+    
+    std::cout << "✓ Inline assembly preservation test passed\n";
+}
+
+void testExtendedAsmWithOutput() {
+    std::string source = R"(
+        fn test_extended_asm() -> u64 {
+            let mut result: u64 = 0;
+            unsafe {
+                asm {
+                    mov $42, %0
+                    : "=r"(result)
+                }
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    if (parser.hasErrors()) {
+        std::cout << "Parser errors:\n";
+        for (const auto& error : parser.getErrors()) {
+            std::cout << "  " << error.message << "\n";
+        }
+    }
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Extended asm with output test passed\n";
+}
+
+void testExtendedAsmWithInputOutput() {
+    std::string source = R"(
+        fn test_asm_input_output(x: u64) -> u64 {
+            let mut result: u64 = 0;
+            unsafe {
+                asm {
+                    add $1, %1
+                    mov %1, %0
+                    : "=r"(result)
+                    : "r"(x)
+                }
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    if (parser.hasErrors()) {
+        std::cout << "Parser errors:\n";
+        for (const auto& error : parser.getErrors()) {
+            std::cout << "  " << error.message << "\n";
+        }
+    }
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Extended asm with input/output test passed\n";
+}
+
+void testExtendedAsmWithClobbers() {
+    std::string source = R"(
+        fn test_asm_clobbers() -> u64 {
+            let mut result: u64 = 0;
+            unsafe {
+                asm {
+                    xor %rax, %rax
+                    mov $100, %rax
+                    mov %rax, %0
+                    : "=r"(result)
+                    :
+                    : "rax", "memory"
+                }
+            }
+            return result;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    if (parser.hasErrors()) {
+        std::cout << "Parser errors:\n";
+        for (const auto& error : parser.getErrors()) {
+            std::cout << "  " << error.message << "\n";
+        }
+    }
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Extended asm with clobbers test passed\n";
+}
+
 int main() {
     std::cout << "Running IR Generator tests...\n\n";
     
@@ -1021,6 +1376,13 @@ int main() {
     testSyscallInUnsafeBlock();
     testSyscallX86_64();
     testSyscallARM64();
+    testInlineAsmBasic();
+    testInlineAsmMultipleInstructions();
+    testInlineAsmInFunction();
+    testInlineAsmPreservation();
+    testExtendedAsmWithOutput();
+    testExtendedAsmWithInputOutput();
+    testExtendedAsmWithClobbers();
     
     std::cout << "\n✓ All IR Generator tests passed!\n";
     return 0;

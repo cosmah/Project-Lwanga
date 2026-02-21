@@ -282,6 +282,8 @@ void IRGenerator::generateStatement(StmtAST* stmt) {
         generateExprStmt(exprStmt);
     } else if (auto* unsafeBlock = dynamic_cast<UnsafeBlockStmt*>(stmt)) {
         generateUnsafeBlock(unsafeBlock);
+    } else if (auto* asmStmt = dynamic_cast<AsmStmt*>(stmt)) {
+        generateAsm(asmStmt);
     }
 }
 
@@ -443,6 +445,152 @@ void IRGenerator::generateUnsafeBlock(UnsafeBlockStmt* stmt) {
         generateStatement(s.get());
     }
     exitScope();
+}
+
+void IRGenerator::generateAsm(AsmStmt* stmt) {
+    // Generate inline assembly with full register access and constraint support
+    // 
+    // Supports two modes:
+    // 1. Basic asm: just assembly code (backward compatible)
+    // 2. Extended asm: assembly code with input/output operands and clobbers
+    
+    // Get target triple to determine platform
+    std::string targetTriple = module->getTargetTriple();
+    bool isX86_64 = targetTriple.find("x86_64") != std::string::npos || 
+                    targetTriple.find("x86-64") != std::string::npos ||
+                    targetTriple.empty(); // Default to x86_64
+    bool isARM64 = targetTriple.find("aarch64") != std::string::npos ||
+                   targetTriple.find("arm64") != std::string::npos;
+    
+    // Use AT&T syntax (requirement 5.3)
+    llvm::InlineAsm::AsmDialect dialect = llvm::InlineAsm::AD_ATT;
+    
+    // Check if this is extended asm (has operands or clobbers)
+    bool isExtendedAsm = !stmt->outputs.empty() || !stmt->inputs.empty() || !stmt->clobbers.empty();
+    
+    if (!isExtendedAsm) {
+        // Basic asm: no inputs/outputs, just side effects
+        llvm::FunctionType* asmFuncType = llvm::FunctionType::get(
+            llvm::Type::getVoidTy(*context),
+            false
+        );
+        
+        llvm::InlineAsm* inlineAsm = llvm::InlineAsm::get(
+            asmFuncType,
+            stmt->asmCode,
+            "",  // empty constraints
+            true,  // hasSideEffects
+            false, // isAlignStack
+            dialect
+        );
+        
+        builder->CreateCall(inlineAsm);
+        return;
+    }
+    
+    // Extended asm: build constraint string and handle operands
+    std::string constraints;
+    std::vector<llvm::Value*> asmArgs;
+    std::vector<llvm::Type*> asmArgTypes;
+    
+    // Process output operands
+    for (size_t i = 0; i < stmt->outputs.size(); i++) {
+        const auto& output = stmt->outputs[i];
+        
+        // Get the lvalue address for output
+        llvm::Value* addr = generateLValueAddress(output.expr.get());
+        if (!addr) {
+            reportError("Invalid output operand in asm statement");
+            return;
+        }
+        
+        // Add constraint (outputs come first)
+        if (i > 0 || !stmt->inputs.empty() || !stmt->clobbers.empty()) {
+            constraints += ",";
+        }
+        constraints += output.constraint;
+        
+        // For outputs, we pass the address
+        asmArgs.push_back(addr);
+        asmArgTypes.push_back(addr->getType());
+    }
+    
+    // Process input operands
+    for (size_t i = 0; i < stmt->inputs.size(); i++) {
+        const auto& input = stmt->inputs[i];
+        
+        // Generate the input value
+        llvm::Value* value = generateExpression(input.expr.get());
+        if (!value) {
+            reportError("Invalid input operand in asm statement");
+            return;
+        }
+        
+        // Add constraint
+        if (!constraints.empty()) {
+            constraints += ",";
+        }
+        constraints += input.constraint;
+        
+        asmArgs.push_back(value);
+        asmArgTypes.push_back(value->getType());
+    }
+    
+    // Add clobbers to constraints
+    for (const auto& clobber : stmt->clobbers) {
+        if (!constraints.empty()) {
+            constraints += ",";
+        }
+        constraints += "~{" + clobber + "}";
+    }
+    
+    // Determine return type based on outputs
+    llvm::Type* returnType;
+    if (stmt->outputs.empty()) {
+        returnType = llvm::Type::getVoidTy(*context);
+    } else if (stmt->outputs.size() == 1) {
+        // Single output: determine type from the expression
+        // For now, use u64 as default output type
+        returnType = llvm::Type::getInt64Ty(*context);
+    } else {
+        // Multiple outputs: return struct of u64s
+        std::vector<llvm::Type*> outputTypes(stmt->outputs.size(), llvm::Type::getInt64Ty(*context));
+        returnType = llvm::StructType::get(*context, outputTypes);
+    }
+    
+    // Create function type for inline assembly
+    llvm::FunctionType* asmFuncType = llvm::FunctionType::get(
+        returnType,
+        asmArgTypes,
+        false
+    );
+    
+    // Create inline assembly
+    llvm::InlineAsm* inlineAsm = llvm::InlineAsm::get(
+        asmFuncType,
+        stmt->asmCode,
+        constraints,
+        true,  // hasSideEffects
+        false, // isAlignStack
+        dialect
+    );
+    
+    // Call the inline assembly
+    llvm::Value* result = builder->CreateCall(inlineAsm, asmArgs);
+    
+    // Store results back to output operands
+    if (!stmt->outputs.empty()) {
+        if (stmt->outputs.size() == 1) {
+            // Single output: store directly
+            builder->CreateStore(result, asmArgs[0]);
+        } else {
+            // Multiple outputs: extract from struct and store
+            for (size_t i = 0; i < stmt->outputs.size(); i++) {
+                llvm::Value* extracted = builder->CreateExtractValue(result, i);
+                builder->CreateStore(extracted, asmArgs[i]);
+            }
+        }
+    }
 }
 
 llvm::Value* IRGenerator::generateExpression(ExprAST* expr) {
