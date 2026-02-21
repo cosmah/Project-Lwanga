@@ -32,6 +32,13 @@ llvm_map_components_to_libnames(llvm_libs
     native
 )
 
+# Lexer library
+add_library(lwanga_lexer
+    src/lexer/Token.cpp
+    src/lexer/Lexer.cpp
+)
+target_include_directories(lwanga_lexer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 # Compiler sources
 set(COMPILER_SOURCES
     src/driver/main.cpp
@@ -40,8 +47,8 @@ set(COMPILER_SOURCES
 # Create the compiler executable
 add_executable(lwangac ${COMPILER_SOURCES})
 
-# Link against LLVM
-target_link_libraries(lwangac ${llvm_libs})
+# Link against LLVM and lexer
+target_link_libraries(lwangac lwanga_lexer ${llvm_libs})
 
 # Compiler flags
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

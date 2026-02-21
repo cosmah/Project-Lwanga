@@ -16,44 +16,44 @@ The implementation prioritizes core functionality first, with security-specific 
   - Verify LLVM integration with a "Hello LLVM" test program
   - _Requirements: 12.1, 12.7, 12.8_
 
-- [ ] 2. Implement lexer for tokenization
-  - [ ] 2.1 Create Token and TokenType classes
+- [x] 2. Implement lexer for tokenization
+  - [x] 2.1 Create Token and TokenType classes
     - Define Token struct with type, lexeme, line, column fields
     - Define TokenType enum covering all keywords, operators, delimiters
     - Implement token-to-string conversion for debugging
     - _Requirements: 1.1, 1.2_
   
-  - [ ] 2.2 Implement Lexer class with state machine
+  - [x] 2.2 Implement Lexer class with state machine
     - Create Lexer class with source text input
     - Implement next_token() method with state machine logic
     - Add whitespace and comment skipping (// and /* */)
     - Implement keyword recognition with lookup table
     - _Requirements: 1.1, 1.9_
   
-  - [ ] 2.3 Add number literal parsing
+  - [x] 2.3 Add number literal parsing
     - Parse hexadecimal literals (0x prefix)
     - Parse decimal integer literals
     - Store numeric values in Token
     - _Requirements: 1.3, 1.4_
   
-  - [ ] 2.4 Add identifier and operator parsing
+  - [x] 2.4 Add identifier and operator parsing
     - Parse identifiers matching [a-zA-Z_][a-zA-Z0-9_]*
     - Parse single-character operators
     - Parse multi-character operators (<<, >>, ==, !=, <=, >=) with lookahead
     - _Requirements: 1.5, 1.6_
   
-  - [ ] 2.5 Add string literal parsing
+  - [x] 2.5 Add string literal parsing
     - Parse string literals in double quotes
     - Handle escape sequences (\n, \r, \t, \\, \", \xHH)
     - _Requirements: 1.10, 19.1_
   
-  - [ ] 2.6 Add delimiter parsing and error handling
+  - [x] 2.6 Add delimiter parsing and error handling
     - Parse all delimiters: (), {}, [], ;, ,, :, .
     - Implement error reporting with line/column numbers
     - Handle invalid characters gracefully
     - _Requirements: 1.7, 1.8, 10.1_
   
-  - [ ]* 2.7 Write unit tests for lexer
+  - [x]* 2.7 Write unit tests for lexer
     - Test keyword recognition
     - Test number parsing (hex and decimal)
     - Test operator parsing (single and multi-character)
