@@ -39,6 +39,13 @@ add_library(lwanga_lexer
 )
 target_include_directories(lwanga_lexer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+# Parser library
+add_library(lwanga_parser
+    src/parser/Parser.cpp
+)
+target_include_directories(lwanga_parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(lwanga_parser lwanga_lexer)
+
 # Compiler sources
 set(COMPILER_SOURCES
     src/driver/main.cpp
@@ -47,8 +54,8 @@ set(COMPILER_SOURCES
 # Create the compiler executable
 add_executable(lwangac ${COMPILER_SOURCES})
 
-# Link against LLVM and lexer
-target_link_libraries(lwangac lwanga_lexer ${llvm_libs})
+# Link against LLVM, lexer, and parser
+target_link_libraries(lwangac lwanga_lexer lwanga_parser ${llvm_libs})
 
 # Compiler flags
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

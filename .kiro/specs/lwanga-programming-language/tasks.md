@@ -61,21 +61,21 @@ The implementation prioritizes core functionality first, with security-specific 
     - Test error cases (invalid characters)
     - _Requirements: 1.1-1.10_
 
-- [ ] 3. Implement parser for AST construction
-  - [ ] 3.1 Define AST node classes
+- [x] 3. Implement parser for AST construction
+  - [x] 3.1 Define AST node classes
     - Create base ASTNode class with visitor pattern support
     - Define expression nodes: IntLiteral, StringLiteral, Identifier, Binary, Unary
     - Define statement nodes: VarDecl, Assignment, If, While, Return, ExprStmt
     - Define top-level nodes: Function, Struct, Constant, Import
     - _Requirements: 2.1_
   
-  - [ ] 3.2 Implement Parser class with recursive descent
+  - [x] 3.2 Implement Parser class with recursive descent
     - Create Parser class consuming Lexer
     - Implement parse() entry point returning Program AST
     - Add error recovery and synchronization
     - _Requirements: 2.1, 2.10_
   
-  - [ ] 3.3 Parse function definitions
+  - [x] 3.3 Parse function definitions
     - Implement parse_function() for fn name(params) -> type { body }
     - Parse parameter lists with types
     - Parse return types
@@ -83,39 +83,39 @@ The implementation prioritizes core functionality first, with security-specific 
     - Handle naked function modifier
     - _Requirements: 2.2, 2.9_
   
-  - [ ] 3.4 Parse variable declarations and assignments
+  - [x] 3.4 Parse variable declarations and assignments
     - Implement parse_var_decl() for let [mut] name: type = expr;
     - Implement parse_assignment() for lvalue = expr;
     - Track mutability in AST
     - _Requirements: 2.3, 15.1, 15.2_
   
-  - [ ] 3.5 Parse control flow statements
+  - [x] 3.5 Parse control flow statements
     - Implement parse_if() for if (cond) { block } [else { block }]
     - Implement parse_while() for while (cond) { block }
     - Implement parse_return() for return [expr];
     - _Requirements: 2.4, 2.5, 2.15, 14.1, 14.2, 14.3_
   
-  - [ ] 3.6 Parse expressions with operator precedence
+  - [x] 3.6 Parse expressions with operator precedence
     - Implement parse_expression() with precedence climbing
     - Define operator precedence table
     - Parse binary operators: +, -, *, /, %, &, |, ^, <<, >>, ==, !=, <, >, <=, >=
     - Parse unary operators: -, !, *, &
     - _Requirements: 2.11, 2.12, 17.1-17.7_
   
-  - [ ] 3.7 Parse function calls and array indexing
+  - [x] 3.7 Parse function calls and array indexing
     - Implement parse_call() for function(args)
     - Implement parse_array_index() for array[index]
     - Handle chained operations (e.g., array[i].field)
     - _Requirements: 2.14, 2.13_
   
-  - [ ] 3.8 Parse special constructs
+  - [x] 3.8 Parse special constructs
     - Implement parse_asm_block() for asm { code }
     - Implement parse_syscall() for syscall(num, args...)
     - Implement parse_enc_block() for enc { "string" }
     - Implement parse_unsafe_block() for unsafe { code }
     - _Requirements: 2.6, 2.7, 2.8, 28.1_
   
-  - [ ]* 3.9 Write unit tests for parser
+  - [x]* 3.9 Write unit tests for parser
     - Test function parsing
     - Test expression parsing with correct precedence
     - Test control flow parsing

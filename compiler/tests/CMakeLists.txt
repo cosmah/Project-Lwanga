@@ -10,4 +10,9 @@ add_executable(lexer_test lexer_test.cpp)
 target_link_libraries(lexer_test lwanga_lexer)
 add_test(NAME LexerTest COMMAND lexer_test)
 
+# Parser test
+add_executable(parser_test parser_test.cpp)
+target_link_libraries(parser_test lwanga_parser lwanga_lexer)
+add_test(NAME ParserTest COMMAND parser_test)
+
 # Tests will be added as we implement components
