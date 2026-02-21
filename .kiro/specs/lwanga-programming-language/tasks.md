@@ -337,20 +337,20 @@ The implementation prioritizes core functionality first, with security-specific 
 - [x] 12. Checkpoint - Ensure core compilation pipeline works
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 13. Implement encrypted string literals
-  - [ ] 13.1 Generate encryption for enc blocks
+- [x] 13. Implement encrypted string literals
+  - [x] 13.1 Generate encryption for enc blocks
     - Generate random XOR key at compile time
     - Encrypt string bytes: encrypted[i] = plaintext[i] ^ key[i % key_len]
     - Store encrypted bytes as global array
     - _Requirements: 7.1, 7.2, 7.4_
   
-  - [ ] 13.2 Generate runtime decryption code
+  - [x] 13.2 Generate runtime decryption code
     - Generate decryption function in IR
     - Implement XOR decryption loop
     - Return pointer to decrypted buffer
     - _Requirements: 7.3, 7.5_
   
-  - [ ]* 13.3 Write property test for encrypted strings
+  - [x]* 13.3 Write property test for encrypted strings
     - **Property 3: Encryption round-trip**
     - **Validates: Requirements 7.1-7.5**
     - For any string, encrypting then decrypting should produce the original string

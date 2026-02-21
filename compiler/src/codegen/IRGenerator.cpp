@@ -616,6 +616,8 @@ llvm::Value* IRGenerator::generateExpression(ExprAST* expr) {
         return generateArrayIndex(arrayIndex);
     } else if (auto* syscall = dynamic_cast<SyscallExpr*>(expr)) {
         return generateSyscall(syscall);
+    } else if (auto* encBlock = dynamic_cast<EncBlockExpr*>(expr)) {
+        return generateEncBlock(encBlock);
     }
     
     return nullptr;
@@ -1354,6 +1356,174 @@ llvm::Constant* IRGenerator::evaluateConstantExpression(ExprAST* expr) {
     }
     
     return nullptr;
+}
+
+llvm::Value* IRGenerator::generateEncBlock(EncBlockExpr* expr) {
+    // Generate encrypted string literal with runtime decryption
+    // 
+    // Implementation:
+    // 1. Generate random XOR key at compile time
+    // 2. Encrypt string bytes: encrypted[i] = plaintext[i] ^ key[i % key_len]
+    // 3. Store encrypted bytes and key as global arrays
+    // 4. Generate inline decryption code
+    // 5. Return pointer to decrypted buffer
+    
+    const std::string& plaintext = expr->value;
+    size_t len = plaintext.length();
+    
+    // Generate random XOR key (16 bytes for reasonable security)
+    const size_t keyLen = 16;
+    std::vector<uint8_t> key(keyLen);
+    
+    // Use a simple pseudo-random generator for compile-time key generation
+    // In production, this should use a cryptographically secure RNG
+    static uint32_t seed = 0x12345678;  // Fixed seed for deterministic builds
+    for (size_t i = 0; i < keyLen; i++) {
+        seed = seed * 1103515245 + 12345;  // Linear congruential generator
+        key[i] = (seed >> 16) & 0xFF;
+    }
+    
+    // Encrypt the string
+    std::vector<uint8_t> encrypted(len);
+    for (size_t i = 0; i < len; i++) {
+        encrypted[i] = static_cast<uint8_t>(plaintext[i]) ^ key[i % keyLen];
+    }
+    
+    // Create global array for encrypted data
+    std::vector<llvm::Constant*> encryptedBytes;
+    for (uint8_t byte : encrypted) {
+        encryptedBytes.push_back(llvm::ConstantInt::get(llvm::Type::getInt8Ty(*context), byte));
+    }
+    
+    llvm::ArrayType* encArrayType = llvm::ArrayType::get(llvm::Type::getInt8Ty(*context), len);
+    llvm::Constant* encArrayInit = llvm::ConstantArray::get(encArrayType, encryptedBytes);
+    
+    llvm::GlobalVariable* encGlobal = new llvm::GlobalVariable(
+        *module,
+        encArrayType,
+        true,  // isConstant
+        llvm::GlobalValue::PrivateLinkage,
+        encArrayInit,
+        ".enc_data"
+    );
+    
+    // Create global array for XOR key
+    std::vector<llvm::Constant*> keyBytes;
+    for (uint8_t byte : key) {
+        keyBytes.push_back(llvm::ConstantInt::get(llvm::Type::getInt8Ty(*context), byte));
+    }
+    
+    llvm::ArrayType* keyArrayType = llvm::ArrayType::get(llvm::Type::getInt8Ty(*context), keyLen);
+    llvm::Constant* keyArrayInit = llvm::ConstantArray::get(keyArrayType, keyBytes);
+    
+    llvm::GlobalVariable* keyGlobal = new llvm::GlobalVariable(
+        *module,
+        keyArrayType,
+        true,  // isConstant
+        llvm::GlobalValue::PrivateLinkage,
+        keyArrayInit,
+        ".enc_key"
+    );
+    
+    // Allocate buffer for decrypted string on the stack
+    llvm::AllocaInst* decryptedBuffer = builder->CreateAlloca(
+        llvm::ArrayType::get(llvm::Type::getInt8Ty(*context), len + 1),  // +1 for null terminator
+        nullptr,
+        "decrypted"
+    );
+    
+    // Generate decryption loop
+    // for (i = 0; i < len; i++) {
+    //     decrypted[i] = encrypted[i] ^ key[i % keyLen];
+    // }
+    // decrypted[len] = 0;  // null terminator
+    
+    llvm::BasicBlock* loopCondBB = llvm::BasicBlock::Create(*context, "enc_loop_cond", currentFunction);
+    llvm::BasicBlock* loopBodyBB = llvm::BasicBlock::Create(*context, "enc_loop_body", currentFunction);
+    llvm::BasicBlock* loopEndBB = llvm::BasicBlock::Create(*context, "enc_loop_end", currentFunction);
+    
+    // Allocate loop counter
+    llvm::AllocaInst* counterAlloca = builder->CreateAlloca(llvm::Type::getInt64Ty(*context), nullptr, "enc_i");
+    builder->CreateStore(llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0), counterAlloca);
+    
+    // Branch to loop condition
+    builder->CreateBr(loopCondBB);
+    
+    // Loop condition: i < len
+    builder->SetInsertPoint(loopCondBB);
+    llvm::Value* counter = builder->CreateLoad(llvm::Type::getInt64Ty(*context), counterAlloca, "i");
+    llvm::Value* lenValue = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), len);
+    llvm::Value* cond = builder->CreateICmpULT(counter, lenValue, "enc_cond");
+    builder->CreateCondBr(cond, loopBodyBB, loopEndBB);
+    
+    // Loop body: decrypted[i] = encrypted[i] ^ key[i % keyLen]
+    builder->SetInsertPoint(loopBodyBB);
+    
+    // Load encrypted[i]
+    llvm::Value* encPtr = builder->CreateGEP(encArrayType, encGlobal, {
+        llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0),
+        counter
+    }, "enc_ptr");
+    llvm::Value* encByte = builder->CreateLoad(llvm::Type::getInt8Ty(*context), encPtr, "enc_byte");
+    
+    // Calculate i % keyLen
+    llvm::Value* keyLenValue = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), keyLen);
+    llvm::Value* keyIndex = builder->CreateURem(counter, keyLenValue, "key_idx");
+    
+    // Load key[i % keyLen]
+    llvm::Value* keyPtr = builder->CreateGEP(keyArrayType, keyGlobal, {
+        llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0),
+        keyIndex
+    }, "key_ptr");
+    llvm::Value* keyByte = builder->CreateLoad(llvm::Type::getInt8Ty(*context), keyPtr, "key_byte");
+    
+    // XOR: decrypted[i] = encrypted[i] ^ key[i % keyLen]
+    llvm::Value* decByte = builder->CreateXor(encByte, keyByte, "dec_byte");
+    
+    // Store to decrypted[i]
+    llvm::Value* decPtr = builder->CreateGEP(
+        llvm::ArrayType::get(llvm::Type::getInt8Ty(*context), len + 1),
+        decryptedBuffer,
+        {
+            llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0),
+            counter
+        },
+        "dec_ptr"
+    );
+    builder->CreateStore(decByte, decPtr);
+    
+    // Increment counter: i++
+    llvm::Value* nextCounter = builder->CreateAdd(counter, llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 1), "next_i");
+    builder->CreateStore(nextCounter, counterAlloca);
+    
+    // Branch back to condition
+    builder->CreateBr(loopCondBB);
+    
+    // After loop: add null terminator
+    builder->SetInsertPoint(loopEndBB);
+    llvm::Value* nullTermPtr = builder->CreateGEP(
+        llvm::ArrayType::get(llvm::Type::getInt8Ty(*context), len + 1),
+        decryptedBuffer,
+        {
+            llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0),
+            lenValue
+        },
+        "null_term_ptr"
+    );
+    builder->CreateStore(llvm::ConstantInt::get(llvm::Type::getInt8Ty(*context), 0), nullTermPtr);
+    
+    // Return pointer to decrypted buffer (cast to i8*)
+    llvm::Value* bufferPtr = builder->CreateGEP(
+        llvm::ArrayType::get(llvm::Type::getInt8Ty(*context), len + 1),
+        decryptedBuffer,
+        {
+            llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0),
+            llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0)
+        },
+        "enc_result"
+    );
+    
+    return bufferPtr;
 }
 
 } // namespace lwanga

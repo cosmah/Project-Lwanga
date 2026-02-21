@@ -35,4 +35,14 @@ add_executable(comprehensive_test comprehensive_test.cpp)
 target_link_libraries(comprehensive_test lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
 add_test(NAME ComprehensiveTest COMMAND comprehensive_test)
 
+# Encrypted string test (Task 13)
+add_executable(enc_block_test enc_block_test.cpp)
+target_link_libraries(enc_block_test lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
+add_test(NAME EncBlockTest COMMAND enc_block_test)
+
+# Encrypted string property test (Task 13.3)
+add_executable(enc_property_test enc_property_test.cpp)
+target_link_libraries(enc_property_test lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
+add_test(NAME EncPropertyTest COMMAND enc_property_test)
+
 # Tests will be added as we implement components
