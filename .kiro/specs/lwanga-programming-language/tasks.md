@@ -355,19 +355,19 @@ The implementation prioritizes core functionality first, with security-specific 
     - **Validates: Requirements 7.1-7.5**
     - For any string, encrypting then decrypting should produce the original string
 
-- [ ] 14. Implement constants and compile-time evaluation
-  - [ ] 14.1 Parse constant declarations
+- [x] 14. Implement constants and compile-time evaluation
+  - [x] 14.1 Parse constant declarations
     - Implement parse_const() for const NAME: type = value;
     - Store constants in symbol table
     - _Requirements: 22.1_
   
-  - [ ] 14.2 Implement constant expression evaluator
+  - [x] 14.2 Implement constant expression evaluator
     - Evaluate arithmetic operations at compile time
     - Evaluate bitwise operations at compile time
     - Substitute constant values during IR generation
     - _Requirements: 22.2, 22.3, 22.4, 22.5_
   
-  - [ ]* 14.3 Write unit tests for constant evaluation
+  - [x]* 14.3 Write unit tests for constant evaluation
     - Test arithmetic constant expressions
     - Test bitwise constant expressions
     - Test constant substitution
