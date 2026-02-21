@@ -299,6 +299,15 @@ void testConstants() {
     std::string source = R"(
         const MAX_SIZE: u64 = 1024;
         const DOUBLED: u64 = MAX_SIZE + MAX_SIZE;
+        const HALVED: u64 = MAX_SIZE / 2;
+        const REMAINDER: u64 = MAX_SIZE % 100;
+        const SHIFTED_LEFT: u64 = MAX_SIZE << 2;
+        const SHIFTED_RIGHT: u64 = MAX_SIZE >> 1;
+        const BITWISE_AND: u64 = MAX_SIZE & 255;
+        const BITWISE_OR: u64 = MAX_SIZE | 15;
+        const BITWISE_XOR: u64 = MAX_SIZE ^ 511;
+        const MULTIPLIED: u64 = MAX_SIZE * 3;
+        const SUBTRACTED: u64 = MAX_SIZE - 24;
         
         fn get_max() -> u64 {
             return MAX_SIZE;
@@ -306,6 +315,11 @@ void testConstants() {
         
         fn get_doubled() -> u64 {
             return DOUBLED;
+        }
+        
+        fn get_all_ops() -> u64 {
+            return HALVED + REMAINDER + SHIFTED_LEFT + SHIFTED_RIGHT + 
+                   BITWISE_AND + BITWISE_OR + BITWISE_XOR + MULTIPLIED + SUBTRACTED;
         }
     )";
     
@@ -334,7 +348,234 @@ void testConstants() {
     llvm::raw_string_ostream errorStream(errorStr);
     assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
     
-    std::cout << "✓ Constants test passed\n";
+    std::cout << "✓ Constants test passed (all arithmetic and bitwise operations)\n";
+}
+
+void testPointerOperations() {
+    std::string source = R"(
+        fn pointer_test() -> u64 {
+            let x: u64 = 42;
+            unsafe {
+                let p: ptr = &x;
+                let y: u64 = *p;
+                return y;
+            }
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Pointer operations test passed\n";
+}
+
+void testPointerArithmetic() {
+    std::string source = R"(
+        fn pointer_arithmetic(base: ptr, offset: u64) -> ptr {
+            let p1: ptr = base + offset;
+            let p2: ptr = p1 - 10;
+            return p2;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Pointer arithmetic test passed\n";
+}
+
+void testPointerDifference() {
+    std::string source = R"(
+        fn pointer_diff(p1: ptr, p2: ptr) -> u64 {
+            return p1 - p2;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Pointer difference test passed\n";
+}
+
+void testPointerCasts() {
+    std::string source = R"(
+        fn pointer_casts(addr: u64) -> ptr {
+            let p: ptr = addr as ptr;
+            let n: u64 = p as u64;
+            let p2: ptr = n as ptr;
+            return p2;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Pointer casts test passed\n";
+}
+
+void testAddressOfDereference() {
+    std::string source = R"(
+        fn address_of_deref(p: ptr) -> ptr {
+            unsafe {
+                let x: u64 = *p;
+                let addr: ptr = &x;
+                return addr;
+            }
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Address-of dereference test passed\n";
+}
+
+void testComplexLValueAssignment() {
+    std::string source = R"(
+        fn complex_assignment(p: ptr) -> u64 {
+            unsafe {
+                *p = 42;
+                return *p;
+            }
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Complex lvalue assignment test passed\n";
 }
 
 int main() {
@@ -350,6 +591,12 @@ int main() {
     testNestedControlFlow();
     testMultipleTypes();
     testConstants();
+    testPointerOperations();
+    testPointerArithmetic();
+    testPointerDifference();
+    testPointerCasts();
+    testAddressOfDereference();
+    testComplexLValueAssignment();
     
     std::cout << "\n✓ All IR Generator tests passed!\n";
     return 0;

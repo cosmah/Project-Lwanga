@@ -277,6 +277,8 @@ void IRGenerator::generateStatement(StmtAST* stmt) {
         generateReturn(returnStmt);
     } else if (auto* exprStmt = dynamic_cast<ExprStmt*>(stmt)) {
         generateExprStmt(exprStmt);
+    } else if (auto* unsafeBlock = dynamic_cast<UnsafeBlockStmt*>(stmt)) {
+        generateUnsafeBlock(unsafeBlock);
     }
 }
 
@@ -304,17 +306,9 @@ void IRGenerator::generateVarDecl(VarDeclStmt* stmt) {
 }
 
 void IRGenerator::generateAssignment(AssignmentStmt* stmt) {
-    // Get the target address
-    llvm::Value* target = nullptr;
-    
-    if (auto* ident = dynamic_cast<IdentifierExpr*>(stmt->target.get())) {
-        target = namedValues[ident->name];
-        if (!target) {
-            reportError("Undefined variable: " + ident->name);
-            return;
-        }
-    } else {
-        reportError("Complex lvalues not yet supported");
+    // Get the target address using the lvalue address generator
+    llvm::Value* target = generateLValueAddress(stmt->target.get());
+    if (!target) {
         return;
     }
     
@@ -438,6 +432,16 @@ void IRGenerator::generateExprStmt(ExprStmt* stmt) {
     generateExpression(stmt->expr.get());
 }
 
+void IRGenerator::generateUnsafeBlock(UnsafeBlockStmt* stmt) {
+    // Unsafe blocks are just scoped statement lists
+    // They don't generate any special IR - the "unsafe" is a compile-time check
+    enterScope();
+    for (auto& s : stmt->body) {
+        generateStatement(s.get());
+    }
+    exitScope();
+}
+
 llvm::Value* IRGenerator::generateExpression(ExprAST* expr) {
     if (auto* intLit = dynamic_cast<IntLiteralExpr*>(expr)) {
         return generateIntLiteral(intLit);
@@ -514,6 +518,35 @@ llvm::Value* IRGenerator::generateBinary(BinaryExpr* expr) {
         return nullptr;
     }
     
+    // Handle pointer arithmetic
+    if (expr->op == BinaryOp::Add && left->getType()->isPointerTy()) {
+        // Pointer + integer: use GEP (GetElementPtr)
+        return builder->CreateGEP(
+            llvm::Type::getInt8Ty(*context),
+            left,
+            right,
+            "ptradd"
+        );
+    }
+    
+    if (expr->op == BinaryOp::Sub && left->getType()->isPointerTy()) {
+        if (right->getType()->isPointerTy()) {
+            // Pointer - pointer: calculate byte difference
+            llvm::Value* leftInt = builder->CreatePtrToInt(left, llvm::Type::getInt64Ty(*context));
+            llvm::Value* rightInt = builder->CreatePtrToInt(right, llvm::Type::getInt64Ty(*context));
+            return builder->CreateSub(leftInt, rightInt, "ptrdiff");
+        } else {
+            // Pointer - integer: use negative GEP
+            llvm::Value* negRight = builder->CreateNeg(right, "negoffset");
+            return builder->CreateGEP(
+                llvm::Type::getInt8Ty(*context),
+                left,
+                negRight,
+                "ptrsub"
+            );
+        }
+    }
+    
     switch (expr->op) {
         case BinaryOp::Add:
             return builder->CreateAdd(left, right, "addtmp");
@@ -553,26 +586,40 @@ llvm::Value* IRGenerator::generateBinary(BinaryExpr* expr) {
 }
 
 llvm::Value* IRGenerator::generateUnary(UnaryExpr* expr) {
-    llvm::Value* operand = generateExpression(expr->operand.get());
-    if (!operand) {
-        return nullptr;
-    }
-    
     switch (expr->op) {
         case UnaryOp::Negate:
-            return builder->CreateNeg(operand, "negtmp");
-        case UnaryOp::Not:
-            return builder->CreateNot(operand, "nottmp");
-        case UnaryOp::Deref:
+        case UnaryOp::Not: {
+            llvm::Value* operand = generateExpression(expr->operand.get());
+            if (!operand) {
+                return nullptr;
+            }
+            
+            if (expr->op == UnaryOp::Negate) {
+                return builder->CreateNeg(operand, "negtmp");
+            } else {
+                return builder->CreateNot(operand, "nottmp");
+            }
+        }
+        
+        case UnaryOp::Deref: {
+            llvm::Value* operand = generateExpression(expr->operand.get());
+            if (!operand) {
+                return nullptr;
+            }
+            
             // Dereference pointer - load from address
+            // For generic pointers, load as u64
             return builder->CreateLoad(
                 llvm::Type::getInt64Ty(*context),
                 operand,
                 "dereftmp"
             );
-        case UnaryOp::AddressOf:
-            reportError("Address-of operator not yet implemented");
-            return nullptr;
+        }
+        
+        case UnaryOp::AddressOf: {
+            // Address-of operator: get the address of an lvalue
+            return generateLValueAddress(expr->operand.get());
+        }
     }
     
     return nullptr;
@@ -637,6 +684,64 @@ llvm::Value* IRGenerator::generateCast(CastExpr* expr) {
     return nullptr;
 }
 
+llvm::Value* IRGenerator::generateLValueAddress(ExprAST* expr) {
+    // Generate the address of an lvalue expression
+    // This is used for the address-of operator (&) and for assignments
+    
+    if (auto* ident = dynamic_cast<IdentifierExpr*>(expr)) {
+        // Simple variable: return its alloca
+        llvm::Value* value = namedValues[ident->name];
+        if (!value) {
+            reportError("Undefined variable in address-of: " + ident->name);
+            return nullptr;
+        }
+        return value;
+    }
+    
+    if (auto* deref = dynamic_cast<UnaryExpr*>(expr)) {
+        if (deref->op == UnaryOp::Deref) {
+            // Dereference: the address is the pointer value itself
+            return generateExpression(deref->operand.get());
+        }
+    }
+    
+    if (auto* arrayIndex = dynamic_cast<ArrayIndexExpr*>(expr)) {
+        // Array indexing: compute the element address using GEP
+        llvm::Value* arrayPtr = generateExpression(arrayIndex->array.get());
+        llvm::Value* index = generateExpression(arrayIndex->index.get());
+        
+        if (!arrayPtr || !index) {
+            return nullptr;
+        }
+        
+        // Use GEP to compute element address
+        return builder->CreateGEP(
+            llvm::Type::getInt8Ty(*context),
+            arrayPtr,
+            index,
+            "elemaddr"
+        );
+    }
+    
+    if (auto* fieldAccess = dynamic_cast<FieldAccessExpr*>(expr)) {
+        // Field access: compute field address using GEP
+        // First, get the address of the struct
+        llvm::Value* structAddr = generateLValueAddress(fieldAccess->object.get());
+        if (!structAddr) {
+            return nullptr;
+        }
+        
+        // TODO: Compute field offset using struct type information
+        // Tracked in TODOS.md
+        // This will be fully implemented in Task 8 when we handle structs
+        reportError("Field access in address-of not yet fully implemented (Task 8)");
+        return nullptr;
+    }
+    
+    reportError("Expression is not an lvalue");
+    return nullptr;
+}
+
 llvm::Constant* IRGenerator::evaluateConstantExpression(ExprAST* expr) {
     // Evaluate expressions at compile time for constants
     if (auto* intLit = dynamic_cast<IntLiteralExpr*>(expr)) {
@@ -661,7 +766,20 @@ llvm::Constant* IRGenerator::evaluateConstantExpression(ExprAST* expr) {
             return nullptr;
         }
         
-        // Perform constant folding using available methods in LLVM 18
+        // For operations not directly available in ConstantExpr, evaluate at compile time
+        // by extracting integer values and computing the result
+        auto* leftInt = llvm::dyn_cast<llvm::ConstantInt>(left);
+        auto* rightInt = llvm::dyn_cast<llvm::ConstantInt>(right);
+        
+        if (!leftInt || !rightInt) {
+            reportError("Constant expression must be integer type");
+            return nullptr;
+        }
+        
+        uint64_t leftVal = leftInt->getZExtValue();
+        uint64_t rightVal = rightInt->getZExtValue();
+        uint64_t result = 0;
+        
         switch (binary->op) {
             case BinaryOp::Add:
                 return llvm::ConstantExpr::getAdd(left, right);
@@ -670,18 +788,33 @@ llvm::Constant* IRGenerator::evaluateConstantExpression(ExprAST* expr) {
             case BinaryOp::Mul:
                 return llvm::ConstantExpr::getMul(left, right);
             case BinaryOp::Div:
+                if (rightVal == 0) {
+                    reportError("Division by zero in constant expression");
+                    return nullptr;
+                }
+                result = leftVal / rightVal;
+                return llvm::ConstantInt::get(leftInt->getType(), result);
             case BinaryOp::Mod:
+                if (rightVal == 0) {
+                    reportError("Modulo by zero in constant expression");
+                    return nullptr;
+                }
+                result = leftVal % rightVal;
+                return llvm::ConstantInt::get(leftInt->getType(), result);
             case BinaryOp::BitAnd:
+                result = leftVal & rightVal;
+                return llvm::ConstantInt::get(leftInt->getType(), result);
             case BinaryOp::BitOr:
-            case BinaryOp::LeftShift:
-            case BinaryOp::RightShift:
-                // These operations are not directly available in ConstantExpr in LLVM 18
-                // For production, we'd need to evaluate these at compile time differently
-                // For now, report error for unsupported constant operations
-                reportError("Unsupported constant operation");
-                return nullptr;
+                result = leftVal | rightVal;
+                return llvm::ConstantInt::get(leftInt->getType(), result);
             case BinaryOp::BitXor:
                 return llvm::ConstantExpr::getXor(left, right);
+            case BinaryOp::LeftShift:
+                result = leftVal << rightVal;
+                return llvm::ConstantInt::get(leftInt->getType(), result);
+            case BinaryOp::RightShift:
+                result = leftVal >> rightVal;
+                return llvm::ConstantInt::get(leftInt->getType(), result);
             case BinaryOp::Equal:
                 return llvm::ConstantExpr::getICmp(llvm::CmpInst::ICMP_EQ, left, right);
             case BinaryOp::NotEqual:

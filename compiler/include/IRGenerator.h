@@ -73,6 +73,7 @@ private:
     void generateWhile(WhileStmt* stmt);
     void generateReturn(ReturnStmt* stmt);
     void generateExprStmt(ExprStmt* stmt);
+    void generateUnsafeBlock(UnsafeBlockStmt* stmt);
     
     // Generate expressions
     llvm::Value* generateExpression(ExprAST* expr);
@@ -83,6 +84,9 @@ private:
     llvm::Value* generateUnary(UnaryExpr* expr);
     llvm::Value* generateCall(CallExpr* expr);
     llvm::Value* generateCast(CastExpr* expr);
+    
+    // Generate lvalue address (for address-of operator and assignments)
+    llvm::Value* generateLValueAddress(ExprAST* expr);
     
     // Evaluate constant expressions at compile time
     llvm::Constant* evaluateConstantExpression(ExprAST* expr);

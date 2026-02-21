@@ -224,14 +224,14 @@ The implementation prioritizes core functionality first, with security-specific 
     - Verify generated IR is valid
     - _Requirements: 9.1_
 
-- [ ] 7. Implement pointer operations and memory management
-  - [ ] 7.1 Generate IR for pointer operations
+- [x] 7. Implement pointer operations and memory management
+  - [x] 7.1 Generate IR for pointer operations
     - Generate IR for dereference (*ptr)
     - Generate IR for address-of (&var)
     - Generate IR for pointer arithmetic (ptr + offset)
     - _Requirements: 8.1, 8.2, 8.3, 8.5_
   
-  - [ ] 7.2 Generate IR for type casts
+  - [x] 7.2 Generate IR for type casts
     - Implement pointer-to-integer casts
     - Implement integer-to-pointer casts
     - Implement pointer-to-pointer casts
