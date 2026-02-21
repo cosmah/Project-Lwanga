@@ -55,11 +55,12 @@ bool TypeSystem::areTypesCompatible(const Type* t1, const Type* t2) {
     
     // Implicit conversions for numeric types
     // Allow widening conversions: smaller -> larger
+    // t1 is target type, t2 is source type
+    // Allow if source size <= target size (u8 -> u16 -> u32 -> u64)
     if (isNumericType(t1) && isNumericType(t2)) {
-        size_t size1 = sizeOf(t1);
-        size_t size2 = sizeOf(t2);
-        // Allow implicit widening (u8 -> u16 -> u32 -> u64)
-        return size1 <= size2;
+        size_t size1 = sizeOf(t1);  // target size
+        size_t size2 = sizeOf(t2);  // source size
+        return size2 <= size1;  // source must be smaller or equal to target
     }
     
     // Pointer compatibility
@@ -74,15 +75,15 @@ bool TypeSystem::areTypesCompatible(const Type* t1, const Type* t2) {
     }
     
     // Array to pointer decay
-    if (t1->kind == TypeKind::Array && t2->kind == TypeKind::Ptr) {
-        if (t2->pointeeType == nullptr) {
+    if (t2->kind == TypeKind::Array && t1->kind == TypeKind::Ptr) {
+        if (t1->pointeeType == nullptr) {
             return true; // Array decays to generic ptr
         }
-        return areTypesEqual(t1->elementType.get(), t2->pointeeType.get());
+        return areTypesEqual(t2->elementType.get(), t1->pointeeType.get());
     }
     
     // Function pointer compatibility
-    if (t1->kind == TypeKind::FunctionPointer && t2->kind == TypeKind::Ptr) {
+    if (t2->kind == TypeKind::FunctionPointer && t1->kind == TypeKind::Ptr) {
         return true; // Function pointers can decay to generic ptr
     }
     

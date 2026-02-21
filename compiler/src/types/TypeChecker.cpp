@@ -122,8 +122,9 @@ void TypeChecker::checkFunction(FunctionAST* func) {
         checkStatement(stmt.get());
     }
     
-    // Verify all paths return (unless return type is void/u64 with value 0)
-    if (func->returnType->kind != TypeKind::U64 || !func->body.empty()) {
+    // Verify all paths return (unless it's a naked function or return type is void/u64 with value 0)
+    // Naked functions use inline assembly to control execution flow
+    if (!func->isNaked && (func->returnType->kind != TypeKind::U64 || !func->body.empty())) {
         if (!verifyAllPathsReturn(func->body)) {
             reportError("Not all code paths return a value in function '" + func->name + "'");
         }
@@ -544,6 +545,11 @@ bool TypeChecker::statementReturns(StmtAST* stmt) {
             return verifyAllPathsReturn(ifStmt->thenBlock) &&
                    verifyAllPathsReturn(ifStmt->elseBlock);
         }
+    }
+    
+    if (auto* unsafeBlock = dynamic_cast<UnsafeBlockStmt*>(stmt)) {
+        // Unsafe block returns if its body returns
+        return verifyAllPathsReturn(unsafeBlock->body);
     }
     
     return false;

@@ -174,7 +174,7 @@ The implementation prioritizes core functionality first, with security-specific 
     - Test error reporting
     - _Requirements: 3.1-3.7_
 
-- [ ] 5. Checkpoint - Ensure lexer, parser, and type checker work together
+- [x] 5. Checkpoint - Ensure lexer, parser, and type checker work together
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 6. Implement LLVM IR generation for basic constructs
