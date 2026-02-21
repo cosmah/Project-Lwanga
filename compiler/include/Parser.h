@@ -48,7 +48,7 @@ private:
     
     // Top-level parsing
     std::unique_ptr<FunctionAST> parseFunction(bool isNaked = false);
-    std::unique_ptr<StructAST> parseStruct();
+    std::unique_ptr<StructAST> parseStruct(bool isPacked = false);
     std::unique_ptr<ConstantAST> parseConstant();
     std::unique_ptr<ImportAST> parseImport();
     

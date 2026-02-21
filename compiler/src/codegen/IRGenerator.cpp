@@ -99,6 +99,8 @@ void IRGenerator::generateStructDeclarations(ProgramAST* program) {
     // Create opaque struct types first
     for (auto& structDef : program->structs) {
         llvm::StructType::create(*context, structDef->name);
+        // Store struct definition for later lookup
+        structDefinitions[structDef->name] = structDef.get();
     }
     
     // Then set their bodies
@@ -457,6 +459,12 @@ llvm::Value* IRGenerator::generateExpression(ExprAST* expr) {
         return generateCall(call);
     } else if (auto* cast = dynamic_cast<CastExpr*>(expr)) {
         return generateCast(cast);
+    } else if (auto* structInit = dynamic_cast<StructInitExpr*>(expr)) {
+        return generateStructInit(structInit);
+    } else if (auto* fieldAccess = dynamic_cast<FieldAccessExpr*>(expr)) {
+        return generateFieldAccess(fieldAccess);
+    } else if (auto* arrayIndex = dynamic_cast<ArrayIndexExpr*>(expr)) {
+        return generateArrayIndex(arrayIndex);
     }
     
     return nullptr;
@@ -684,6 +692,142 @@ llvm::Value* IRGenerator::generateCast(CastExpr* expr) {
     return nullptr;
 }
 
+llvm::Value* IRGenerator::generateStructInit(StructInitExpr* expr) {
+    // Look up struct type
+    llvm::StructType* structType = llvm::StructType::getTypeByName(*context, expr->structName);
+    if (!structType) {
+        reportError("Undefined struct type: " + expr->structName);
+        return nullptr;
+    }
+    
+    // Look up struct definition
+    auto it = structDefinitions.find(expr->structName);
+    if (it == structDefinitions.end()) {
+        reportError("Struct definition not found: " + expr->structName);
+        return nullptr;
+    }
+    StructAST* structDef = it->second;
+    
+    // Allocate space for the struct on the stack
+    llvm::AllocaInst* structAlloca = builder->CreateAlloca(structType, nullptr, "structtmp");
+    
+    // Initialize each field
+    for (const auto& fieldInit : expr->fields) {
+        // Find field index
+        int fieldIndex = -1;
+        for (size_t i = 0; i < structDef->fields.size(); i++) {
+            if (structDef->fields[i].name == fieldInit.first) {
+                fieldIndex = static_cast<int>(i);
+                break;
+            }
+        }
+        
+        if (fieldIndex == -1) {
+            reportError("Unknown field '" + fieldInit.first + "' in struct " + expr->structName);
+            continue;
+        }
+        
+        // Generate field value
+        llvm::Value* fieldValue = generateExpression(fieldInit.second.get());
+        if (!fieldValue) {
+            continue;
+        }
+        
+        // Get pointer to field using GEP
+        llvm::Value* fieldPtr = builder->CreateStructGEP(
+            structType,
+            structAlloca,
+            fieldIndex,
+            fieldInit.first
+        );
+        
+        // Store value in field
+        builder->CreateStore(fieldValue, fieldPtr);
+    }
+    
+    // Load and return the struct value
+    return builder->CreateLoad(structType, structAlloca, "structval");
+}
+
+llvm::Value* IRGenerator::generateFieldAccess(FieldAccessExpr* expr) {
+    // Get the address of the field
+    llvm::Value* fieldAddr = generateFieldAddress(expr);
+    if (!fieldAddr) {
+        return nullptr;
+    }
+    
+    // Determine the field type by looking up the struct definition
+    // We need to get the struct type from the object expression
+    llvm::Type* structType = nullptr;
+    std::string structName;
+    
+    if (auto* ident = dynamic_cast<IdentifierExpr*>(expr->object.get())) {
+        auto typeIt = namedTypes.find(ident->name);
+        if (typeIt != namedTypes.end()) {
+            structType = typeIt->second;
+            if (auto* st = llvm::dyn_cast<llvm::StructType>(structType)) {
+                structName = st->getName().str();
+            }
+        }
+    }
+    
+    if (!structType || structName.empty()) {
+        reportError("Cannot determine struct type for field access");
+        return nullptr;
+    }
+    
+    // Look up struct definition
+    auto it = structDefinitions.find(structName);
+    if (it == structDefinitions.end()) {
+        reportError("Struct definition not found: " + structName);
+        return nullptr;
+    }
+    StructAST* structDef = it->second;
+    
+    // Find the field and its type
+    llvm::Type* fieldType = nullptr;
+    for (size_t i = 0; i < structDef->fields.size(); i++) {
+        if (structDef->fields[i].name == expr->fieldName) {
+            fieldType = convertType(structDef->fields[i].type.get());
+            break;
+        }
+    }
+    
+    if (!fieldType) {
+        reportError("Field type not found for: " + expr->fieldName);
+        return nullptr;
+    }
+    
+    // Load the field value with the correct type
+    return builder->CreateLoad(fieldType, fieldAddr, "fieldval");
+}
+
+llvm::Value* IRGenerator::generateArrayIndex(ArrayIndexExpr* expr) {
+    // Get the address of the array element
+    llvm::Value* elemAddr = generateArrayElementAddress(expr);
+    if (!elemAddr) {
+        return nullptr;
+    }
+    
+    // Determine the element type
+    // Try to get the array type from the array expression
+    llvm::Type* elemType = llvm::Type::getInt64Ty(*context); // Default to u64
+    
+    // If the array is a simple identifier, look up its type
+    if (auto* ident = dynamic_cast<IdentifierExpr*>(expr->array.get())) {
+        auto typeIt = namedTypes.find(ident->name);
+        if (typeIt != namedTypes.end()) {
+            llvm::Type* arrayType = typeIt->second;
+            if (auto* arrType = llvm::dyn_cast<llvm::ArrayType>(arrayType)) {
+                elemType = arrType->getElementType();
+            }
+        }
+    }
+    
+    // Load the element value with the correct type
+    return builder->CreateLoad(elemType, elemAddr, "elemval");
+}
+
 llvm::Value* IRGenerator::generateLValueAddress(ExprAST* expr) {
     // Generate the address of an lvalue expression
     // This is used for the address-of operator (&) and for assignments
@@ -706,40 +850,100 @@ llvm::Value* IRGenerator::generateLValueAddress(ExprAST* expr) {
     }
     
     if (auto* arrayIndex = dynamic_cast<ArrayIndexExpr*>(expr)) {
-        // Array indexing: compute the element address using GEP
-        llvm::Value* arrayPtr = generateExpression(arrayIndex->array.get());
-        llvm::Value* index = generateExpression(arrayIndex->index.get());
-        
-        if (!arrayPtr || !index) {
-            return nullptr;
-        }
-        
-        // Use GEP to compute element address
-        return builder->CreateGEP(
-            llvm::Type::getInt8Ty(*context),
-            arrayPtr,
-            index,
-            "elemaddr"
-        );
+        // Array indexing: compute the element address
+        return generateArrayElementAddress(arrayIndex);
     }
     
     if (auto* fieldAccess = dynamic_cast<FieldAccessExpr*>(expr)) {
-        // Field access: compute field address using GEP
-        // First, get the address of the struct
-        llvm::Value* structAddr = generateLValueAddress(fieldAccess->object.get());
-        if (!structAddr) {
-            return nullptr;
-        }
-        
-        // TODO: Compute field offset using struct type information
-        // Tracked in TODOS.md
-        // This will be fully implemented in Task 8 when we handle structs
-        reportError("Field access in address-of not yet fully implemented (Task 8)");
-        return nullptr;
+        // Field access: compute field address
+        return generateFieldAddress(fieldAccess);
     }
     
     reportError("Expression is not an lvalue");
     return nullptr;
+}
+
+llvm::Value* IRGenerator::generateFieldAddress(FieldAccessExpr* expr) {
+    // Get the address of the struct
+    llvm::Value* structAddr = generateLValueAddress(expr->object.get());
+    if (!structAddr) {
+        return nullptr;
+    }
+    
+    // Determine the struct type from the object expression
+    llvm::Type* ptrType = structAddr->getType();
+    if (!ptrType->isPointerTy()) {
+        reportError("Field access on non-pointer type");
+        return nullptr;
+    }
+    
+    // In LLVM 18 with opaque pointers, we need to track the pointee type separately
+    // Look it up from namedTypes if it's a simple variable
+    llvm::Type* structType = nullptr;
+    std::string structName;
+    
+    if (auto* ident = dynamic_cast<IdentifierExpr*>(expr->object.get())) {
+        auto typeIt = namedTypes.find(ident->name);
+        if (typeIt != namedTypes.end()) {
+            structType = typeIt->second;
+            if (auto* st = llvm::dyn_cast<llvm::StructType>(structType)) {
+                structName = st->getName().str();
+            }
+        }
+    }
+    
+    if (!structType || structName.empty()) {
+        reportError("Cannot determine struct type for field access");
+        return nullptr;
+    }
+    
+    // Look up struct definition
+    auto it = structDefinitions.find(structName);
+    if (it == structDefinitions.end()) {
+        reportError("Struct definition not found: " + structName);
+        return nullptr;
+    }
+    StructAST* structDef = it->second;
+    
+    // Find field index
+    int fieldIndex = -1;
+    for (size_t i = 0; i < structDef->fields.size(); i++) {
+        if (structDef->fields[i].name == expr->fieldName) {
+            fieldIndex = static_cast<int>(i);
+            break;
+        }
+    }
+    
+    if (fieldIndex == -1) {
+        reportError("Unknown field '" + expr->fieldName + "' in struct " + structName);
+        return nullptr;
+    }
+    
+    // Use GEP to get field address
+    return builder->CreateStructGEP(
+        structType,
+        structAddr,
+        fieldIndex,
+        expr->fieldName
+    );
+}
+
+llvm::Value* IRGenerator::generateArrayElementAddress(ArrayIndexExpr* expr) {
+    // Get the array pointer
+    llvm::Value* arrayPtr = generateExpression(expr->array.get());
+    llvm::Value* index = generateExpression(expr->index.get());
+    
+    if (!arrayPtr || !index) {
+        return nullptr;
+    }
+    
+    // Use GEP to compute element address
+    return builder->CreateGEP(
+        llvm::Type::getInt8Ty(*context),
+        arrayPtr,
+        index,
+        "elemaddr"
+    );
 }
 
 llvm::Constant* IRGenerator::evaluateConstantExpression(ExprAST* expr) {

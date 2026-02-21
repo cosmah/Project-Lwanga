@@ -31,6 +31,7 @@ const char* tokenTypeToString(TokenType type) {
         case TokenType::TOK_IMPORT: return "import";
         case TokenType::TOK_UNSAFE: return "unsafe";
         case TokenType::TOK_AS: return "as";
+        case TokenType::TOK_PACKED: return "packed";
         
         // Operators
         case TokenType::TOK_PLUS: return "+";

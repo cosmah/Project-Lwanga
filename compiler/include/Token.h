@@ -39,6 +39,7 @@ enum class TokenType {
     TOK_IMPORT,
     TOK_UNSAFE,
     TOK_AS,
+    TOK_PACKED,
     
     // Operators
     TOK_PLUS,           // +

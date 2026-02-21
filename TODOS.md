@@ -27,19 +27,6 @@ This document tracks all TODOs, placeholders, and incomplete implementations acr
 ```
 **Resolution Plan:** Will be implemented in Task 22 (Implement compiler driver and CLI)
 
-### 2. Field Access in Address-Of
-**File:** `compiler/src/codegen/IRGenerator.cpp`  
-**Function:** `generateLValueAddress()` - field access case  
-**Line:** ~690  
-**Status:** Expected - Part of Task 8  
-**Description:**
-```cpp
-// For now, we need the struct type information to compute field offset
-// This will be fully implemented in Task 8 when we handle structs
-reportError("Field access in address-of not yet fully implemented (Task 8)");
-```
-**Resolution Plan:** Will be implemented in Task 8 (Implement arrays and structs) when we add full struct support with GEP instructions for field offsets
-
 ---
 
 ## Design Decisions (Not TODOs, but documented for clarity)
@@ -50,10 +37,15 @@ None currently - all previous design limitations have been resolved.
 
 ## Completed and Removed
 
+### ✓ Field Access in Address-Of
+**Previously:** Not fully implemented, reported error  
+**Status:** COMPLETED - Full field access with GEP instructions  
+**Completed:** Task 8.4
+
 ### ✓ Address-of Operator for Complex Expressions
 **Previously:** Only supported simple variables  
-**Status:** COMPLETED - Now supports variables, dereferences, and array indexing  
-**Completed:** Task 7 (additional work)
+**Status:** COMPLETED - Now supports variables, dereferences, array indexing, and field access  
+**Completed:** Task 7 & 8
 
 ### ✓ Unsafe Block IR Generation
 **Previously:** Not implemented  
@@ -62,8 +54,8 @@ None currently - all previous design limitations have been resolved.
 
 ### ✓ Complex LValue Assignments
 **Previously:** Only supported simple variable assignments  
-**Status:** COMPLETED - Now supports any lvalue (dereferences, array indexing)  
-**Completed:** Task 7 (additional work)
+**Status:** COMPLETED - Now supports any lvalue (dereferences, array indexing, field access)  
+**Completed:** Task 7 & 8
 
 ### ✓ Constant Expression Evaluation
 **Previously:** Had placeholder for div, mod, bitwise ops, shifts  
@@ -105,8 +97,8 @@ When adding a TODO to the codebase:
 
 ## Statistics
 
-- **Active TODOs:** 2
+- **Active TODOs:** 1
 - **Design Decisions:** 0
-- **Completed TODOs:** 6
+- **Completed TODOs:** 8
 
-**Last Updated:** Task 7 completion (full address-of and lvalue support)
+**Last Updated:** Task 8.4 completion (full struct operations)

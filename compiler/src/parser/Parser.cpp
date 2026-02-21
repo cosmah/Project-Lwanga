@@ -76,8 +76,12 @@ std::unique_ptr<ProgramAST> Parser::parse() {
                 program->imports.push_back(parseImport());
             } else if (match(TokenType::TOK_CONST)) {
                 program->constants.push_back(parseConstant());
+            } else if (match(TokenType::TOK_PACKED)) {
+                // Packed struct
+                expect(TokenType::TOK_STRUCT, "Expected 'struct' after 'packed'");
+                program->structs.push_back(parseStruct(true));
             } else if (match(TokenType::TOK_STRUCT)) {
-                program->structs.push_back(parseStruct());
+                program->structs.push_back(parseStruct(false));
             } else if (match(TokenType::TOK_NAKED)) {
                 expect(TokenType::TOK_FN, "Expected 'fn' after 'naked'");
                 program->functions.push_back(parseFunction(true));
@@ -196,7 +200,7 @@ std::unique_ptr<ConstantAST> Parser::parseConstant() {
     return std::make_unique<ConstantAST>(name, std::move(type), std::move(value));
 }
 
-std::unique_ptr<StructAST> Parser::parseStruct() {
+std::unique_ptr<StructAST> Parser::parseStruct(bool isPacked) {
     if (!check(TokenType::TOK_IDENTIFIER)) {
         reportError("Expected struct name");
         return nullptr;
@@ -231,7 +235,7 @@ std::unique_ptr<StructAST> Parser::parseStruct() {
     
     expect(TokenType::TOK_RIGHT_BRACE, "Expected '}' after struct fields");
     
-    return std::make_unique<StructAST>(name, std::move(fields));
+    return std::make_unique<StructAST>(name, std::move(fields), isPacked);
 }
 
 std::unique_ptr<FunctionAST> Parser::parseFunction(bool isNaked) {

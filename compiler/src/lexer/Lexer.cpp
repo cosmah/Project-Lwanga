@@ -31,7 +31,8 @@ void Lexer::initKeywords() {
         {"const", TokenType::TOK_CONST},
         {"import", TokenType::TOK_IMPORT},
         {"unsafe", TokenType::TOK_UNSAFE},
-        {"as", TokenType::TOK_AS}
+        {"as", TokenType::TOK_AS},
+        {"packed", TokenType::TOK_PACKED}
     };
 }
 

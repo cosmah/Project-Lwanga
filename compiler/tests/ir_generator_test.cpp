@@ -578,6 +578,135 @@ void testComplexLValueAssignment() {
     std::cout << "✓ Complex lvalue assignment test passed\n";
 }
 
+void testStructOperations() {
+    std::string source = R"(
+        struct Point {
+            x: u64,
+            y: u64
+        }
+        
+        fn create_point() -> Point {
+            return Point { x: 10, y: 20 };
+        }
+        
+        fn get_x(p: Point) -> u64 {
+            return p.x;
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Struct operations test passed\n";
+}
+
+void testPackedStruct() {
+    std::string source = R"(
+        packed struct Data {
+            flag: u8,
+            value: u32
+        }
+        
+        fn create_data() -> Data {
+            return Data { flag: 1, value: 42 };
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Packed struct test passed\n";
+}
+
+void testNestedStructs() {
+    std::string source = R"(
+        struct Inner {
+            value: u64
+        }
+        
+        struct Outer {
+            inner: Inner,
+            extra: u64
+        }
+        
+        fn create_nested() -> Outer {
+            let i: Inner = Inner { value: 42 };
+            return Outer { inner: i, extra: 100 };
+        }
+    )";
+    
+    Lexer lexer(source);
+    Parser parser(lexer);
+    auto program = parser.parse();
+    
+    assert(!parser.hasErrors());
+    
+    TypeChecker checker;
+    assert(checker.check(program.get()));
+    
+    IRGenerator generator("test_module");
+    bool success = generator.generate(program.get());
+    
+    if (!success) {
+        std::cout << "IR generation errors:\n";
+        for (const auto& error : generator.getErrors()) {
+            std::cout << "  " << error << "\n";
+        }
+    }
+    
+    assert(success);
+    
+    std::string errorStr;
+    llvm::raw_string_ostream errorStream(errorStr);
+    assert(!llvm::verifyModule(*generator.getModule(), &errorStream));
+    
+    std::cout << "✓ Nested structs test passed\n";
+}
+
 int main() {
     std::cout << "Running IR Generator tests...\n\n";
     
@@ -597,7 +726,11 @@ int main() {
     testPointerCasts();
     testAddressOfDereference();
     testComplexLValueAssignment();
+    testStructOperations();
+    testPackedStruct();
+    testNestedStructs();
     
     std::cout << "\n✓ All IR Generator tests passed!\n";
     return 0;
 }
+

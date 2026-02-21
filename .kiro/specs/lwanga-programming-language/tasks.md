@@ -242,36 +242,36 @@ The implementation prioritizes core functionality first, with security-specific 
     - **Validates: Requirements 8.1, 8.2**
     - For any variable, taking its address and dereferencing should yield the original value
 
-- [ ] 8. Implement arrays and structs
-  - [ ] 8.1 Parse struct definitions
+- [x] 8. Implement arrays and structs
+  - [x] 8.1 Parse struct definitions
     - Implement parse_struct() for struct Name { fields }
     - Parse field declarations with types
     - Handle packed struct attribute
     - _Requirements: 20.1, 20.7_
   
-  - [ ] 8.2 Parse struct initialization and field access
+  - [x] 8.2 Parse struct initialization and field access
     - Implement parse_struct_init() for Name { field: value, ... }
     - Implement parse_field_access() for struct.field
     - _Requirements: 20.2, 20.3_
   
-  - [ ] 8.3 Generate IR for struct types
+  - [x] 8.3 Generate IR for struct types
     - Create LLVM struct types with correct field layout
     - Calculate field offsets
     - Handle packed structs
     - _Requirements: 20.4, 20.6_
   
-  - [ ] 8.4 Generate IR for struct operations
+  - [x] 8.4 Generate IR for struct operations
     - Generate IR for struct initialization
     - Generate IR for field access (GEP instructions)
     - Handle nested structs
     - _Requirements: 20.4, 20.5_
   
-  - [ ] 8.5 Parse array types and literals
+  - [x] 8.5 Parse array types and literals
     - Implement parse_array_type() for [type; size]
     - Implement parse_array_literal() for [val1, val2, ...]
     - _Requirements: 16.1, 16.2_
   
-  - [ ] 8.6 Generate IR for array operations
+  - [x] 8.6 Generate IR for array operations
     - Allocate contiguous memory for arrays
     - Generate IR for array indexing (GEP instructions)
     - Handle array-to-pointer decay

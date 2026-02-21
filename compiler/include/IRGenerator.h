@@ -45,6 +45,9 @@ private:
     // Track constants (map name to constant value)
     std::unordered_map<std::string, llvm::Constant*> constants;
     
+    // Track struct definitions for field offset calculations
+    std::unordered_map<std::string, StructAST*> structDefinitions;
+    
     // Current function being generated
     llvm::Function* currentFunction;
     
@@ -84,9 +87,16 @@ private:
     llvm::Value* generateUnary(UnaryExpr* expr);
     llvm::Value* generateCall(CallExpr* expr);
     llvm::Value* generateCast(CastExpr* expr);
+    llvm::Value* generateStructInit(StructInitExpr* expr);
+    llvm::Value* generateFieldAccess(FieldAccessExpr* expr);
+    llvm::Value* generateArrayIndex(ArrayIndexExpr* expr);
     
     // Generate lvalue address (for address-of operator and assignments)
     llvm::Value* generateLValueAddress(ExprAST* expr);
+    
+    // Helper methods for address generation
+    llvm::Value* generateFieldAddress(FieldAccessExpr* expr);
+    llvm::Value* generateArrayElementAddress(ArrayIndexExpr* expr);
     
     // Evaluate constant expressions at compile time
     llvm::Constant* evaluateConstantExpression(ExprAST* expr);
