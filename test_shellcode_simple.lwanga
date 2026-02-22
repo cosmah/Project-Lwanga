@@ -1,0 +1,10 @@
+fn write(fd: u64, buf: ptr, count: u64) -> u64 {
+    unsafe {
+        return syscall(1, fd, buf, count);
+    }
+}
+
+fn main() -> u64 {
+    write(1, "Test\n", 5);
+    return 0;
+}

@@ -1,6 +1,7 @@
 #include "Parser.h"
 #include <stdexcept>
 #include <iostream>
+#include <set>
 
 namespace lwanga {
 
@@ -442,8 +443,42 @@ std::unique_ptr<AsmStmt> Parser::parseAsm() {
             advance();
         } else {
             // Collect raw tokens (for inline assembly syntax)
-            if (!firstToken && !asmCode.empty() && asmCode.back() != ' ' && asmCode.back() != '\n') {
-                asmCode += " ";
+            // Add newline before instruction mnemonics (identifiers that start a new instruction)
+            // Common x86 instruction mnemonics
+            static const std::set<std::string> instructionMnemonics = {
+                "mov", "push", "pop", "add", "sub", "xor", "and", "or", "not",
+                "call", "ret", "jmp", "je", "jne", "jz", "jnz", "jg", "jl",
+                "syscall", "int", "lea", "cmp", "test", "inc", "dec", "mul", "div",
+                "shl", "shr", "sal", "sar", "rol", "ror", "nop", "hlt"
+            };
+            
+            // If this is an instruction mnemonic and not the first token, add newline
+            if (!firstToken && instructionMnemonics.count(currentToken.lexeme) > 0) {
+                if (!asmCode.empty() && asmCode.back() != '\n') {
+                    asmCode += "\n";
+                }
+            } else if (!firstToken && !asmCode.empty()) {
+                // Determine if we need a space before this token
+                bool needSpace = true;
+                
+                // No space before: comma, closing paren
+                if (currentToken.lexeme == "," || currentToken.lexeme == ")") {
+                    needSpace = false;
+                }
+                
+                // No space after: %, $, opening paren
+                if (asmCode.back() == '%' || asmCode.back() == '$' || asmCode.back() == '(') {
+                    needSpace = false;
+                }
+                
+                // No space if last char is already space or newline
+                if (asmCode.back() == ' ' || asmCode.back() == '\n') {
+                    needSpace = false;
+                }
+                
+                if (needSpace) {
+                    asmCode += " ";
+                }
             }
             asmCode += currentToken.lexeme;
             advance();
@@ -779,6 +814,20 @@ std::unique_ptr<ExprAST> Parser::parsePrimaryExpr() {
         }
         
         return std::make_unique<IdentifierExpr>(name);
+    }
+    
+    // Array literal
+    if (match(TokenType::TOK_LEFT_BRACKET)) {
+        std::vector<std::unique_ptr<ExprAST>> elements;
+        
+        if (!check(TokenType::TOK_RIGHT_BRACKET)) {
+            do {
+                elements.push_back(parseExpression());
+            } while (match(TokenType::TOK_COMMA));
+        }
+        
+        expect(TokenType::TOK_RIGHT_BRACKET, "Expected ']' after array elements");
+        return std::make_unique<ArrayLiteralExpr>(std::move(elements));
     }
     
     // Parenthesized expression

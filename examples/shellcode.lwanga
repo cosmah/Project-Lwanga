@@ -15,23 +15,23 @@ naked fn _start() -> u64 {
         
         asm {
             // Push null terminator
-            xor %rax, %rax
-            push %rax
+            xor rax, rax
+            push rax
             
             // Push "/bin/sh" string (8 bytes)
-            mov $0x68732f6e69622f, %rax
-            push %rax
+            mov rax, 0x68732f6e69622f
+            push rax
             
             // Setup execve arguments
-            mov %rsp, %rdi          // filename = "/bin/sh"
-            xor %rsi, %rsi          // argv = NULL
-            xor %rdx, %rdx          // envp = NULL
-            mov $59, %rax           // syscall number for execve
+            mov rdi, rsp          // filename = "/bin/sh"
+            xor rsi, rsi          // argv = NULL
+            xor rdx, rdx          // envp = NULL
+            mov rax, 59           // syscall number for execve
             syscall
             
             // If execve fails, exit
-            mov $60, %rax           // syscall number for exit
-            xor %rdi, %rdi          // exit code = 0
+            mov rax, 60           // syscall number for exit
+            xor rdi, rdi          // exit code = 0
             syscall
         }
     }

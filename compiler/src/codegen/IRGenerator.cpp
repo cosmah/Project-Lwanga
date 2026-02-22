@@ -716,8 +716,8 @@ void IRGenerator::generateAsm(AsmStmt* stmt) {
     bool isARM64 = targetTriple.find("aarch64") != std::string::npos ||
                    targetTriple.find("arm64") != std::string::npos;
     
-    // Use AT&T syntax (requirement 5.3)
-    llvm::InlineAsm::AsmDialect dialect = llvm::InlineAsm::AD_ATT;
+    // Use Intel syntax for inline assembly (no % or $ prefixes needed)
+    llvm::InlineAsm::AsmDialect dialect = llvm::InlineAsm::AD_Intel;
     
     // Check if this is extended asm (has operands or clobbers)
     bool isExtendedAsm = !stmt->outputs.empty() || !stmt->inputs.empty() || !stmt->clobbers.empty();
@@ -852,6 +852,8 @@ llvm::Value* IRGenerator::generateExpression(ExprAST* expr) {
         return generateIntLiteral(intLit);
     } else if (auto* strLit = dynamic_cast<StringLiteralExpr*>(expr)) {
         return generateStringLiteral(strLit);
+    } else if (auto* arrayLit = dynamic_cast<ArrayLiteralExpr*>(expr)) {
+        return generateArrayLiteral(arrayLit);
     } else if (auto* ident = dynamic_cast<IdentifierExpr*>(expr)) {
         return generateIdentifier(ident);
     } else if (auto* binary = dynamic_cast<BinaryExpr*>(expr)) {
@@ -898,6 +900,41 @@ llvm::Value* IRGenerator::generateStringLiteral(StringLiteralExpr* expr) {
         strGlobal,
         llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0)
     );
+}
+
+llvm::Value* IRGenerator::generateArrayLiteral(ArrayLiteralExpr* expr) {
+    // Generate values for all elements
+    std::vector<llvm::Constant*> elementValues;
+    llvm::Type* elementType = nullptr;
+    
+    for (auto& elem : expr->elements) {
+        llvm::Value* val = generateExpression(elem.get());
+        if (!val) return nullptr;
+        
+        // All elements must be constants for array literals
+        llvm::Constant* constVal = llvm::dyn_cast<llvm::Constant>(val);
+        if (!constVal) {
+            // For non-constant initializers, we need to allocate and initialize at runtime
+            // This is handled in variable declaration
+            return nullptr;
+        }
+        
+        if (!elementType) {
+            elementType = constVal->getType();
+        }
+        
+        elementValues.push_back(constVal);
+    }
+    
+    if (elementValues.empty()) {
+        return nullptr;
+    }
+    
+    // Create array type and constant
+    llvm::ArrayType* arrayType = llvm::ArrayType::get(elementType, elementValues.size());
+    llvm::Constant* arrayConstant = llvm::ConstantArray::get(arrayType, elementValues);
+    
+    return arrayConstant;
 }
 
 llvm::Value* IRGenerator::generateIdentifier(IdentifierExpr* expr) {

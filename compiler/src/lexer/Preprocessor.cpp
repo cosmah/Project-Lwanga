@@ -126,15 +126,19 @@ void Preprocessor::skipUntilEndif(int depth) {
 void Preprocessor::skipUntilElseOrEndif(int depth) {
     while (currentChar() != '\0') {
         if (currentChar() == '#') {
-            size_t savedCursor = cursor;
-            uint32_t savedLine = line;
-            
             advance();
             skipWhitespace();
             std::string directive = readIdentifier();
             
             if (directive == "if") {
                 depth++;
+                // Skip rest of line
+                while (currentChar() != '\n' && currentChar() != '\0') {
+                    advance();
+                }
+                if (currentChar() == '\n') {
+                    advance();
+                }
             } else if (directive == "else" && depth == 1) {
                 // Skip to end of line
                 while (currentChar() != '\n' && currentChar() != '\0') {
@@ -156,15 +160,25 @@ void Preprocessor::skipUntilElseOrEndif(int depth) {
                     }
                     return;
                 }
+                // Skip rest of line
+                while (currentChar() != '\n' && currentChar() != '\0') {
+                    advance();
+                }
+                if (currentChar() == '\n') {
+                    advance();
+                }
+            } else {
+                // Unknown directive, skip rest of line
+                while (currentChar() != '\n' && currentChar() != '\0') {
+                    advance();
+                }
+                if (currentChar() == '\n') {
+                    advance();
+                }
             }
-            
-            // Continue from saved position if not found
-            if (depth > 1 || (directive != "else" && directive != "endif")) {
-                cursor = savedCursor;
-                line = savedLine;
-            }
+        } else {
+            advance();
         }
-        advance();
     }
 }
 

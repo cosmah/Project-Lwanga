@@ -99,6 +99,7 @@ private:
     llvm::Value* generateExpression(ExprAST* expr);
     llvm::Value* generateIntLiteral(IntLiteralExpr* expr);
     llvm::Value* generateStringLiteral(StringLiteralExpr* expr);
+    llvm::Value* generateArrayLiteral(ArrayLiteralExpr* expr);
     llvm::Value* generateIdentifier(IdentifierExpr* expr);
     llvm::Value* generateBinary(BinaryExpr* expr);
     llvm::Value* generateUnary(UnaryExpr* expr);

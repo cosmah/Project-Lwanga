@@ -1,0 +1,9 @@
+#if ARCH_X86_64
+fn test() -> u64 {
+    return 1;
+}
+#endif
+
+fn main() -> u64 {
+    return 0;
+}

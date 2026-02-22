@@ -1,0 +1,13 @@
+naked fn _start() -> u64 {
+    unsafe {
+        asm {
+            xor %rax, %rax
+            ret
+        }
+    }
+    return 0;
+}
+
+fn main() -> u64 {
+    return 0;
+}

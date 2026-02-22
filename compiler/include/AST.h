@@ -100,6 +100,15 @@ public:
         : ExprAST(l), value(val) {}
 };
 
+// Array literal
+class ArrayLiteralExpr : public ExprAST {
+public:
+    std::vector<std::unique_ptr<ExprAST>> elements;
+    
+    ArrayLiteralExpr(std::vector<std::unique_ptr<ExprAST>> elems, SourceLocation l = SourceLocation())
+        : ExprAST(l), elements(std::move(elems)) {}
+};
+
 // Identifier (variable reference)
 class IdentifierExpr : public ExprAST {
 public:
