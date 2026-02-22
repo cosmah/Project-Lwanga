@@ -1,0 +1,119 @@
+// TCP Server - Network socket example
+// Demonstrates: syscalls, structs, pointers, control flow
+//
+// Compile: lwangac tcp_server.lwanga -o tcp_server
+// Run: ./tcp_server
+// Test: nc localhost 8080
+
+// Socket address structure for IPv4
+struct sockaddr_in {
+    sin_family: u16,
+    sin_port: u16,
+    sin_addr: u32,
+    sin_zero: u64
+}
+
+// Syscall wrappers
+fn socket(domain: u64, type: u64, protocol: u64) -> u64 {
+    unsafe {
+        return syscall(41, domain, type, protocol);
+    }
+}
+
+fn bind(sockfd: u64, addr: ptr, addrlen: u64) -> u64 {
+    unsafe {
+        return syscall(49, sockfd, addr, addrlen);
+    }
+}
+
+fn listen(sockfd: u64, backlog: u64) -> u64 {
+    unsafe {
+        return syscall(50, sockfd, backlog, 0);
+    }
+}
+
+fn accept(sockfd: u64, addr: ptr, addrlen: ptr) -> u64 {
+    unsafe {
+        return syscall(43, sockfd, addr, addrlen);
+    }
+}
+
+fn write(fd: u64, buf: ptr, count: u64) -> u64 {
+    unsafe {
+        return syscall(1, fd, buf, count);
+    }
+}
+
+fn close(fd: u64) -> u64 {
+    unsafe {
+        return syscall(3, fd, 0, 0);
+    }
+}
+
+fn exit(code: u64) -> u64 {
+    unsafe {
+        return syscall(60, code, 0, 0);
+    }
+}
+
+// Convert port to network byte order (big-endian)
+fn htons(port: u64) -> u16 {
+    let low: u64 = port & 255;
+    let high: u64 = (port >> 8) & 255;
+    return ((low << 8) | high) as u16;
+}
+
+fn main() -> u64 {
+    // Create socket (AF_INET=2, SOCK_STREAM=1, IPPROTO_TCP=6)
+    let sockfd: u64 = socket(2, 1, 6);
+    if (sockfd > 18446744073709551615 - 4096) {
+        write(2, "Failed to create socket\n", 24);
+        exit(1);
+    }
+    
+    // Setup address structure
+    let addr: sockaddr_in = sockaddr_in {
+        sin_family: 2,              // AF_INET
+        sin_port: htons(8080),      // Port 8080
+        sin_addr: 0,                // INADDR_ANY (0.0.0.0)
+        sin_zero: 0
+    };
+    
+    // Bind socket
+    let bind_result: u64 = bind(sockfd, &addr as ptr, 16);
+    if (bind_result > 18446744073709551615 - 4096) {
+        write(2, "Failed to bind socket\n", 22);
+        close(sockfd);
+        exit(1);
+    }
+    
+    // Listen for connections
+    let listen_result: u64 = listen(sockfd, 5);
+    if (listen_result > 18446744073709551615 - 4096) {
+        write(2, "Failed to listen\n", 17);
+        close(sockfd);
+        exit(1);
+    }
+    
+    write(1, "Server listening on port 8080...\n", 34);
+    
+    // Accept connection
+    let client_fd: u64 = accept(sockfd, 0 as ptr, 0 as ptr);
+    if (client_fd > 18446744073709551615 - 4096) {
+        write(2, "Failed to accept connection\n", 28);
+        close(sockfd);
+        exit(1);
+    }
+    
+    // Send response
+    let response: ptr = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, World!";
+    write(client_fd, response, 56);
+    
+    // Cleanup
+    close(client_fd);
+    close(sockfd);
+    
+    write(1, "Connection handled successfully\n", 32);
+    exit(0);
+    return 0;
+}

@@ -1,0 +1,5 @@
+fn main() -> u64 {
+    let x: u64 = 42;
+    let y: u64 = xz;  // Typo - should trigger "did you mean?" suggestion
+    return 0;
+}

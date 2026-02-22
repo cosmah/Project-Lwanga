@@ -1,0 +1,70 @@
+// Encrypted Strings - enc block example
+// Demonstrates: encrypted string literals, runtime decryption
+//
+// Compile: lwangac encrypted_strings.lwanga -o encrypted_strings
+// Run: ./encrypted_strings
+//
+// The enc {} block encrypts strings at compile time with XOR encryption
+// and decrypts them at runtime. This prevents strings from appearing
+// in plaintext in the binary, useful for malware analysis evasion.
+
+fn write(fd: u64, buf: ptr, count: u64) -> u64 {
+    unsafe {
+        return syscall(1, fd, buf, count);
+    }
+}
+
+fn exit(code: u64) -> u64 {
+    unsafe {
+        return syscall(60, code, 0, 0);
+    }
+}
+
+fn strlen(s: ptr) -> u64 {
+    let mut len: u64 = 0;
+    let mut p: ptr = s;
+    
+    unsafe {
+        let mut byte: u64 = *p as u64;
+        while (byte != 0) {
+            len = len + 1;
+            p = (p as u64 + 1) as ptr;
+            byte = *p as u64;
+        }
+    }
+    
+    return len;
+}
+
+fn main() -> u64 {
+    // Regular string - appears in plaintext in binary
+    let plain: ptr = "This is a plaintext string\n";
+    write(1, plain, 27);
+    
+    // Encrypted string - encrypted at compile time, decrypted at runtime
+    // The string does NOT appear in plaintext in the binary
+    unsafe {
+        let encrypted: ptr = enc { "This is an encrypted string!\n" };
+        let len: u64 = strlen(encrypted);
+        write(1, encrypted, len);
+    }
+    
+    // Multiple encrypted strings
+    unsafe {
+        let secret1: ptr = enc { "Secret API key: sk_live_abc123\n" };
+        let secret2: ptr = enc { "Password: hunter2\n" };
+        let secret3: ptr = enc { "Hidden message\n" };
+        
+        write(1, secret1, strlen(secret1));
+        write(1, secret2, strlen(secret2));
+        write(1, secret3, strlen(secret3));
+    }
+    
+    // Demonstrate that encrypted strings are different each compilation
+    // (due to random XOR keys generated at compile time)
+    write(1, "\nNote: Strings are encrypted with random keys at compile time\n", 62);
+    write(1, "Recompile to see different encrypted bytes in the binary\n", 58);
+    
+    exit(0);
+    return 0;
+}

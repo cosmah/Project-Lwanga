@@ -1,7 +1,31 @@
 #include "TypeChecker.h"
 #include <iostream>
+#include <algorithm>
+#include <climits>
 
 namespace lwanga {
+
+// Helper function to calculate Levenshtein distance for "did you mean?" suggestions
+static int levenshteinDistance(const std::string& s1, const std::string& s2) {
+    const size_t len1 = s1.size(), len2 = s2.size();
+    std::vector<std::vector<int>> d(len1 + 1, std::vector<int>(len2 + 1));
+    
+    for (size_t i = 0; i <= len1; ++i) d[i][0] = i;
+    for (size_t j = 0; j <= len2; ++j) d[0][j] = j;
+    
+    for (size_t i = 1; i <= len1; ++i) {
+        for (size_t j = 1; j <= len2; ++j) {
+            int cost = (s1[i - 1] == s2[j - 1]) ? 0 : 1;
+            d[i][j] = std::min({
+                d[i - 1][j] + 1,      // deletion
+                d[i][j - 1] + 1,      // insertion
+                d[i - 1][j - 1] + cost // substitution
+            });
+        }
+    }
+    
+    return d[len1][len2];
+}
 
 TypeChecker::TypeChecker() 
     : currentFunction(nullptr), inUnsafeBlock(false) {
@@ -157,7 +181,8 @@ void TypeChecker::checkStatement(StmtAST* stmt) {
 void TypeChecker::checkVarDecl(VarDeclStmt* stmt) {
     // Check if variable already exists in current scope
     if (symbolTable.existsInCurrentScope(stmt->name)) {
-        reportError("Variable '" + stmt->name + "' already defined in this scope");
+        reportError("Variable '" + stmt->name + "' already defined in this scope", 
+                   stmt->loc.line, stmt->loc.column);
         return;
     }
     
@@ -165,9 +190,19 @@ void TypeChecker::checkVarDecl(VarDeclStmt* stmt) {
     if (stmt->initializer) {
         Type* initType = checkExpression(stmt->initializer.get());
         if (initType && !TypeSystem::areTypesCompatible(stmt->type.get(), initType)) {
-            reportError("Type mismatch in variable initialization: expected " +
+            std::string errorMsg = "Type mismatch in variable initialization: expected " +
                        TypeSystem::typeToString(stmt->type.get()) + ", got " +
-                       TypeSystem::typeToString(initType));
+                       TypeSystem::typeToString(initType);
+            
+            // Add helpful suggestion for common mistakes
+            if (stmt->type->kind == TypeKind::Ptr && TypeSystem::isNumericType(initType)) {
+                errorMsg += ". Hint: use 'as ptr' to cast numeric value to pointer";
+            } else if (TypeSystem::isNumericType(stmt->type.get()) && initType->kind == TypeKind::Ptr) {
+                errorMsg += ". Hint: use 'as " + TypeSystem::typeToString(stmt->type.get()) + 
+                           "' to cast pointer to numeric type";
+            }
+            
+            reportError(errorMsg, stmt->loc.line, stmt->loc.column);
         }
     }
     
@@ -195,15 +230,27 @@ void TypeChecker::checkAssignment(AssignmentStmt* stmt) {
     if (auto* ident = dynamic_cast<IdentifierExpr*>(stmt->target.get())) {
         Symbol* sym = symbolTable.lookup(ident->name);
         if (sym && !sym->isMutable) {
-            reportError("Cannot assign to immutable variable '" + ident->name + "'");
+            reportError("Cannot assign to immutable variable '" + ident->name + 
+                       "'. Hint: declare with 'let mut' to make it mutable",
+                       stmt->loc.line, stmt->loc.column);
         }
     }
     
     // Check type compatibility
     if (!TypeSystem::areTypesCompatible(targetType, valueType)) {
-        reportError("Type mismatch in assignment: expected " +
+        std::string errorMsg = "Type mismatch in assignment: expected " +
                    TypeSystem::typeToString(targetType) + ", got " +
-                   TypeSystem::typeToString(valueType));
+                   TypeSystem::typeToString(valueType);
+        
+        // Add helpful suggestion for common mistakes
+        if (targetType->kind == TypeKind::Ptr && TypeSystem::isNumericType(valueType)) {
+            errorMsg += ". Hint: use 'as ptr' to cast numeric value to pointer";
+        } else if (TypeSystem::isNumericType(targetType) && valueType->kind == TypeKind::Ptr) {
+            errorMsg += ". Hint: use 'as " + TypeSystem::typeToString(targetType) + 
+                       "' to cast pointer to numeric type";
+        }
+        
+        reportError(errorMsg, stmt->loc.line, stmt->loc.column);
     }
 }
 
@@ -268,7 +315,8 @@ void TypeChecker::checkExprStmt(ExprStmt* stmt) {
 
 void TypeChecker::checkAsmStmt(AsmStmt* stmt) {
     if (!inUnsafeBlock && !currentFunction->isNaked) {
-        reportError("Inline assembly must be in unsafe block or naked function");
+        reportError("Inline assembly must be in unsafe block or naked function. Hint: wrap in 'unsafe { ... }' or use 'naked fn'",
+                   stmt->loc.line, stmt->loc.column);
     }
 }
 
@@ -330,7 +378,27 @@ Type* TypeChecker::checkStringLiteral(StringLiteralExpr* expr) {
 Type* TypeChecker::checkIdentifier(IdentifierExpr* expr) {
     Symbol* sym = symbolTable.lookup(expr->name);
     if (!sym) {
-        reportError("Undefined identifier '" + expr->name + "'");
+        std::string errorMsg = "Undefined identifier '" + expr->name + "'";
+        
+        // Find similar identifiers for "did you mean?" suggestion
+        std::vector<std::string> allSymbols = symbolTable.getAllSymbols();
+        std::string bestMatch;
+        int bestDistance = INT_MAX;
+        
+        for (const auto& symbol : allSymbols) {
+            int distance = levenshteinDistance(expr->name, symbol);
+            // Only suggest if distance is small and symbol is similar enough
+            if (distance < bestDistance && distance <= 3 && distance < expr->name.length()) {
+                bestDistance = distance;
+                bestMatch = symbol;
+            }
+        }
+        
+        if (!bestMatch.empty()) {
+            errorMsg += ". Did you mean '" + bestMatch + "'?";
+        }
+        
+        reportError(errorMsg, expr->loc.line, expr->loc.column);
         return nullptr;
     }
     
@@ -365,7 +433,8 @@ Type* TypeChecker::checkUnary(UnaryExpr* expr) {
     
     // Check if operation requires unsafe block
     if ((expr->op == UnaryOp::Deref || expr->op == UnaryOp::AddressOf) && !inUnsafeBlock) {
-        reportError("Pointer operations must be in unsafe block");
+        reportError("Pointer operations must be in unsafe block. Hint: wrap in 'unsafe { ... }'",
+                   expr->loc.line, expr->loc.column);
     }
     
     auto resultType = TypeSystem::getUnaryOpResultType(operandType, expr->op);
@@ -414,7 +483,8 @@ Type* TypeChecker::checkCall(CallExpr* expr) {
 
 Type* TypeChecker::checkSyscall(SyscallExpr* expr) {
     if (!inUnsafeBlock) {
-        reportError("Syscall must be in unsafe block");
+        reportError("Syscall must be in unsafe block. Hint: wrap in 'unsafe { ... }'",
+                   expr->loc.line, expr->loc.column);
     }
     
     // Check syscall number expression
@@ -423,7 +493,7 @@ Type* TypeChecker::checkSyscall(SyscallExpr* expr) {
         syscallNumType->kind != TypeKind::U32 && 
         syscallNumType->kind != TypeKind::U16 && 
         syscallNumType->kind != TypeKind::U8) {
-        reportError("Syscall number must be an integer type");
+        reportError("Syscall number must be an integer type", expr->loc.line, expr->loc.column);
     }
     
     // Check all arguments

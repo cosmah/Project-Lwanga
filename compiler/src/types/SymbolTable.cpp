@@ -102,4 +102,14 @@ const Scope* SymbolTable::getCurrentScope() const {
     return &scopes.back();
 }
 
+std::vector<std::string> SymbolTable::getAllSymbols() const {
+    std::vector<std::string> result;
+    for (const auto& scope : scopes) {
+        for (const auto& pair : scope.getSymbols()) {
+            result.push_back(pair.first);
+        }
+    }
+    return result;
+}
+
 } // namespace lwanga

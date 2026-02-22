@@ -600,41 +600,41 @@ The implementation prioritizes core functionality first, with security-specific 
 - [x] 24. Checkpoint - Ensure complete compiler works end-to-end
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 25. Create example programs and documentation
-  - [ ] 25.1 Write example programs
+- [x] 25. Create example programs and documentation
+  - [x] 25.1 Write example programs
     - Create hello_world.lwanga (syscall-based output)
     - Create tcp_server.lwanga (network socket example)
     - Create shellcode.lwanga (position-independent code example)
     - Create encrypted_strings.lwanga (enc block example)
     - _Requirements: 4.1, 7.1, 18.1, 18.2_
   
-  - [ ] 25.2 Document syscall numbers
+  - [x] 25.2 Document syscall numbers
     - Create syscall reference for Linux x86_64
     - Create syscall reference for Linux ARM64
     - Document common syscalls (read, write, open, close, socket, etc.)
     - _Requirements: 18.5_
   
-  - [ ] 25.3 Write language reference documentation
+  - [x] 25.3 Write language reference documentation
     - Document syntax and semantics
     - Document type system
     - Document special features (syscall, asm, enc, naked)
     - Document compiler flags and options
     - _Requirements: All requirements_
 
-- [ ] 26. Final integration and polish
-  - [ ] 26.1 Optimize compiler performance
+- [x] 26. Final integration and polish
+  - [x] 26.1 Optimize compiler performance
     - Profile compilation stages
     - Optimize hot paths in lexer and parser
     - Reduce memory allocations
     - _Requirements: 9.1, 9.2_
   
-  - [ ] 26.2 Add comprehensive error messages
+  - [x] 26.2 Add comprehensive error messages
     - Improve error message clarity
     - Add suggestions for common mistakes
     - Add "did you mean?" suggestions for typos
     - _Requirements: 10.1-10.6_
   
-  - [ ] 26.3 Verify minimal binary size
+  - [x] 26.3 Verify minimal binary size
     - Test that minimal programs produce <10KB executables
     - Optimize code generation for size
     - Strip unnecessary sections

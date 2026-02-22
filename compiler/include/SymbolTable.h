@@ -70,6 +70,9 @@ public:
     // Get current scope
     Scope* getCurrentScope();
     const Scope* getCurrentScope() const;
+    
+    // Get all symbol names across all scopes (for error suggestions)
+    std::vector<std::string> getAllSymbols() const;
 
 private:
     std::vector<Scope> scopes;

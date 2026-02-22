@@ -1,0 +1,24 @@
+// Hello World - Syscall-based output
+// Demonstrates: syscalls, unsafe blocks, string literals
+//
+// Compile: lwangac hello_world.lwanga -o hello_world
+// Run: ./hello_world
+
+fn write(fd: u64, buf: ptr, count: u64) -> u64 {
+    unsafe {
+        return syscall(1, fd, buf, count);
+    }
+}
+
+fn exit(code: u64) -> u64 {
+    unsafe {
+        return syscall(60, code, 0, 0);
+    }
+}
+
+fn main() -> u64 {
+    let msg: ptr = "Hello, World!\n";
+    write(1, msg, 14);
+    exit(0);
+    return 0;
+}
