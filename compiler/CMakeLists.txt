@@ -63,6 +63,13 @@ add_library(lwanga_codegen
 target_include_directories(lwanga_codegen PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
 
+# Module loader library
+add_library(lwanga_modules
+    src/driver/ModuleLoader.cpp
+)
+target_include_directories(lwanga_modules PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(lwanga_modules lwanga_parser lwanga_lexer)
+
 # Compiler sources
 set(COMPILER_SOURCES
     src/driver/main.cpp
@@ -71,8 +78,8 @@ set(COMPILER_SOURCES
 # Create the compiler executable
 add_executable(lwangac ${COMPILER_SOURCES})
 
-# Link against LLVM, lexer, parser, types, and codegen
-target_link_libraries(lwangac lwanga_lexer lwanga_parser lwanga_types lwanga_codegen ${llvm_libs})
+# Link against LLVM, lexer, parser, types, codegen, and modules
+target_link_libraries(lwangac lwanga_lexer lwanga_parser lwanga_types lwanga_codegen lwanga_modules ${llvm_libs})
 
 # Compiler flags
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

@@ -430,20 +430,20 @@ The implementation prioritizes core functionality first, with security-specific 
     - Test error reporting for unsafe violations
     - _Requirements: 28.1-28.5_
 
-- [ ] 18. Implement module system
-  - [ ] 18.1 Parse import statements
+- [x] 18. Implement module system
+  - [x] 18.1 Parse import statements
     - Implement parse_import() for import "path";
     - Resolve module paths relative to source file
     - _Requirements: 23.1, 23.2_
   
-  - [ ] 18.2 Implement module loading and linking
+  - [x] 18.2 Implement module loading and linking
     - Load and parse imported modules
     - Merge symbol tables from multiple modules
     - Detect circular imports
     - Handle module exports
     - _Requirements: 23.3, 23.4, 23.5_
   
-  - [ ]* 18.3 Write unit tests for module system
+  - [x]* 18.3 Write unit tests for module system
     - Test import parsing
     - Test module resolution
     - Test circular import detection

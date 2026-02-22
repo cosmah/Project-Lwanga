@@ -65,4 +65,9 @@ add_executable(preprocessor_test preprocessor_test.cpp)
 target_link_libraries(preprocessor_test lwanga_lexer)
 add_test(NAME PreprocessorTest COMMAND preprocessor_test)
 
+# Module system test (Task 18)
+add_executable(module_test module_test.cpp)
+target_link_libraries(module_test lwanga_modules lwanga_parser lwanga_lexer)
+add_test(NAME ModuleTest COMMAND module_test)
+
 # Tests will be added as we implement components
