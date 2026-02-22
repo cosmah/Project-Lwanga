@@ -36,6 +36,7 @@ llvm_map_components_to_libnames(llvm_libs
 add_library(lwanga_lexer
     src/lexer/Token.cpp
     src/lexer/Lexer.cpp
+    src/lexer/Preprocessor.cpp
 )
 target_include_directories(lwanga_lexer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

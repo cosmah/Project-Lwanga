@@ -42,6 +42,12 @@ enum class TokenType {
     TOK_PACKED,
     TOK_REGISTER,
     
+    // Preprocessor directives
+    TOK_HASH_IF,
+    TOK_HASH_ELSE,
+    TOK_HASH_ENDIF,
+    TOK_HASH_DEFINE,
+    
     // Operators
     TOK_PLUS,           // +
     TOK_MINUS,          // -

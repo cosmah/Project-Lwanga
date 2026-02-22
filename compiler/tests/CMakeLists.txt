@@ -60,4 +60,9 @@ add_executable(unsafe_test unsafe_test.cpp)
 target_link_libraries(unsafe_test lwanga_types lwanga_parser lwanga_lexer)
 add_test(NAME UnsafeTest COMMAND unsafe_test)
 
+# Preprocessor test (Task 19)
+add_executable(preprocessor_test preprocessor_test.cpp)
+target_link_libraries(preprocessor_test lwanga_lexer)
+add_test(NAME PreprocessorTest COMMAND preprocessor_test)
+
 # Tests will be added as we implement components
