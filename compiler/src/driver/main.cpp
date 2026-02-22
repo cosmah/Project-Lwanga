@@ -17,6 +17,7 @@
 #include "IRGenerator.h"
 #include "Backend.h"
 #include "ModuleLoader.h"
+#include "CompilerUI.h"
 
 using namespace llvm;
 using namespace lwanga;
@@ -69,7 +70,7 @@ static cl::opt<bool> PIC("pic",
 std::string readFile(const std::string& path) {
     std::ifstream file(path);
     if (!file.is_open()) {
-        std::cerr << "Error: Could not open file: " << path << "\n";
+        lwanga::printError("Could not open file: " + path);
         return "";
     }
     
@@ -81,14 +82,11 @@ std::string readFile(const std::string& path) {
 // Helper function to display error with source context
 void displayError(const std::string& message, uint32_t line, uint32_t column, 
                   const std::string& source) {
-    std::cerr << "Error";
+    std::cerr << lwanga::Color::BOLD << lwanga::Color::RED << "error";
     if (line > 0) {
-        std::cerr << " at line " << line;
-        if (column > 0) {
-            std::cerr << ", column " << column;
-        }
+        std::cerr << "[E" << line << "]";
     }
-    std::cerr << ": " << message << "\n";
+    std::cerr << ": " << lwanga::Color::RESET << message << "\n";
     
     // Show source context if available
     if (line > 0 && !source.empty()) {
@@ -98,13 +96,15 @@ void displayError(const std::string& message, uint32_t line, uint32_t column,
         
         while (std::getline(sourceStream, currentLine)) {
             if (currentLineNum == line) {
-                std::cerr << "  " << currentLine << "\n";
+                std::cerr << lwanga::Color::DIM << "  " << line << " | " << lwanga::Color::RESET 
+                         << currentLine << "\n";
                 if (column > 0) {
-                    std::cerr << "  ";
+                    std::cerr << lwanga::Color::DIM << "    | " << lwanga::Color::RESET;
                     for (uint32_t i = 1; i < column; ++i) {
                         std::cerr << " ";
                     }
-                    std::cerr << "^\n";
+                    std::cerr << lwanga::Color::BOLD << lwanga::Color::RED << "^" 
+                             << lwanga::Color::RESET << "\n";
                 }
                 break;
             }
@@ -131,21 +131,26 @@ int main(int argc, char **argv) {
     // Parse command line options
     cl::ParseCommandLineOptions(argc, argv, "Lwanga Compiler\n");
     
+    // Show logo if verbose
+    if (Verbose) {
+        lwanga::printLogo();
+    }
+    
     auto startTime = std::chrono::high_resolution_clock::now();
     
     if (Verbose) {
-        std::cout << "Lwanga Compiler v0.1.0\n";
-        std::cout << "Input file: " << InputFilename << "\n";
-        std::cout << "Output file: " << OutputFilename << "\n";
-        std::cout << "Optimization level: -O" << OptLevel << "\n";
+        std::cout << lwanga::Color::BOLD << "Lwanga Compiler v0.1.0\n" << lwanga::Color::RESET;
+        std::cout << lwanga::Color::DIM << "Input file: " << lwanga::Color::RESET << InputFilename << "\n";
+        std::cout << lwanga::Color::DIM << "Output file: " << lwanga::Color::RESET << OutputFilename << "\n";
+        std::cout << lwanga::Color::DIM << "Optimization level: " << lwanga::Color::RESET << "-O" << OptLevel << "\n";
         if (JITMode) {
-            std::cout << "Mode: JIT execution\n";
+            std::cout << lwanga::Color::DIM << "Mode: " << lwanga::Color::RESET << "JIT execution\n";
         }
         if (!TargetTriple.empty()) {
-            std::cout << "Target: " << TargetTriple << "\n";
+            std::cout << lwanga::Color::DIM << "Target: " << lwanga::Color::RESET << TargetTriple << "\n";
         }
         if (Obfuscate) {
-            std::cout << "Obfuscation: enabled\n";
+            std::cout << lwanga::Color::DIM << "Obfuscation: " << lwanga::Color::RESET << "enabled\n";
         }
         if (PIC) {
             std::cout << "Position-independent code: enabled\n";

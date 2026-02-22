@@ -104,3 +104,9 @@ install(TARGETS lwangac DESTINATION bin)
 # Enable testing
 enable_testing()
 add_subdirectory(tests)
+
+# Add formatter tool
+add_subdirectory(../tools/formatter ${CMAKE_CURRENT_BINARY_DIR}/formatter)
+
+# Add syntax highlighter tool
+add_subdirectory(../tools/highlighter ${CMAKE_CURRENT_BINARY_DIR}/highlighter)

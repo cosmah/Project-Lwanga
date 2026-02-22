@@ -1,0 +1,20 @@
+# Lwanga Formatter Configuration
+
+[formatting]
+indent_width = 4
+max_line_width = 100
+brace_style = "kr"
+space_around_operators = true
+trailing_commas = true
+sort_imports = true
+
+[header]
+add_logo = true
+logo_style = "minimal"
+include_metadata = true
+author = "Lwanga Team"
+license = "MIT"
+
+[assembly]
+preserve_formatting = true
+indent_instructions = true
