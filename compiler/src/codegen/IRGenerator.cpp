@@ -47,6 +47,9 @@ bool IRGenerator::generate(ProgramAST* program) {
         generateFunction(func.get());
     }
     
+    // Fifth pass: Generate _start function wrapper for freestanding executables
+    generateStartFunction();
+    
     // Finalize debug info if enabled
     if (generateDebugInfo) {
         finalizeDebugInfo();
@@ -216,6 +219,105 @@ void IRGenerator::generateConstantDeclarations(ProgramAST* program) {
         // Store in constants map
         constants[constant->name] = constValue;
     }
+}
+
+void IRGenerator::generateStartFunction() {
+    // Generate _start function that calls main and exits
+    // This is required for freestanding executables
+    
+    // Check if main function exists
+    llvm::Function* mainFunc = module->getFunction("main");
+    if (!mainFunc) {
+        // No main function, don't generate _start
+        return;
+    }
+    
+    // Get target triple to determine platform
+    std::string targetTriple = module->getTargetTriple();
+    bool isLinux = targetTriple.find("linux") != std::string::npos || targetTriple.empty();
+    
+    if (!isLinux) {
+        // Only generate _start for Linux targets
+        return;
+    }
+    
+    // Create _start function: void _start()
+    llvm::FunctionType* startFuncType = llvm::FunctionType::get(
+        llvm::Type::getVoidTy(*context),
+        false
+    );
+    
+    llvm::Function* startFunc = llvm::Function::Create(
+        startFuncType,
+        llvm::Function::ExternalLinkage,
+        "_start",
+        module.get()
+    );
+    
+    // Create entry block
+    llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(*context, "entry", startFunc);
+    builder->SetInsertPoint(entryBB);
+    
+    // Call main function
+    llvm::Value* exitCode = builder->CreateCall(mainFunc, {}, "main_result");
+    
+    // Generate exit syscall
+    // Linux x86_64: syscall 60 (exit) with exit code in rdi
+    // Linux ARM64: syscall 93 (exit) with exit code in x0
+    
+    bool isX86_64 = targetTriple.find("x86_64") != std::string::npos || 
+                    targetTriple.find("x86-64") != std::string::npos ||
+                    targetTriple.empty(); // Default to x86_64
+    bool isARM64 = targetTriple.find("aarch64") != std::string::npos ||
+                   targetTriple.find("arm64") != std::string::npos;
+    
+    std::string asmStr;
+    std::string constraints;
+    uint64_t exitSyscallNum;
+    
+    if (isX86_64) {
+        exitSyscallNum = 60; // exit syscall number for x86_64
+        asmStr = "syscall";
+        // Constraints: syscall number in rax, exit code in rdi
+        constraints = "{rax},{rdi},~{rcx},~{r11},~{memory}";
+    } else if (isARM64) {
+        exitSyscallNum = 93; // exit syscall number for ARM64
+        asmStr = "svc #0";
+        // Constraints: syscall number in x8, exit code in x0
+        constraints = "{x8},{x0},~{memory}";
+    } else {
+        // Fallback: just return (will likely crash, but better than nothing)
+        builder->CreateRetVoid();
+        return;
+    }
+    
+    // Create inline assembly for exit syscall
+    std::vector<llvm::Type*> asmParamTypes = {
+        llvm::Type::getInt64Ty(*context),  // syscall number
+        llvm::Type::getInt64Ty(*context)   // exit code
+    };
+    
+    llvm::FunctionType* asmFuncType = llvm::FunctionType::get(
+        llvm::Type::getVoidTy(*context),
+        asmParamTypes,
+        false
+    );
+    
+    llvm::InlineAsm* exitAsm = llvm::InlineAsm::get(
+        asmFuncType,
+        asmStr,
+        constraints,
+        true,  // hasSideEffects
+        false, // isAlignStack
+        llvm::InlineAsm::AD_ATT
+    );
+    
+    // Call exit syscall with exit code from main
+    llvm::Value* syscallNum = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), exitSyscallNum);
+    builder->CreateCall(exitAsm, {syscallNum, exitCode});
+    
+    // Unreachable after exit syscall
+    builder->CreateUnreachable();
 }
 
 void IRGenerator::generateFunction(FunctionAST* func) {
@@ -1256,33 +1358,19 @@ llvm::Value* IRGenerator::generateSyscall(SyscallExpr* expr) {
         // x86_64 Linux syscall ABI:
         // syscall number in rax, args in rdi, rsi, rdx, r10, r8, r9
         // Result returned in rax
-        asmStr = "movq $0, %rax\n\t"
-                 "movq $1, %rdi\n\t"
-                 "movq $2, %rsi\n\t"
-                 "movq $3, %rdx\n\t"
-                 "movq $4, %r10\n\t"
-                 "movq $5, %r8\n\t"
-                 "movq $6, %r9\n\t"
-                 "syscall";
+        asmStr = "syscall";
         
-        // Constraints: all inputs are registers, output is rax
-        // "=r" means output in register, "r" means input in register
-        constraints = "={rax},r,r,r,r,r,r,~{rcx},~{r11},~{memory}";
+        // Use explicit register constraints to avoid LLVM reordering
+        // Format: output constraint, input constraints for each register
+        constraints = "={rax},{rax},{rdi},{rsi},{rdx},{r10},{r8},{r9},~{rcx},~{r11},~{memory}";
     } else { // ARM64
         // ARM64 Linux syscall ABI:
         // syscall number in x8, args in x0-x5
         // Result returned in x0
-        asmStr = "mov x8, $0\n\t"
-                 "mov x0, $1\n\t"
-                 "mov x1, $2\n\t"
-                 "mov x2, $3\n\t"
-                 "mov x3, $4\n\t"
-                 "mov x4, $5\n\t"
-                 "mov x5, $6\n\t"
-                 "svc #0";
+        asmStr = "svc #0";
         
-        // Constraints for ARM64
-        constraints = "={x0},r,r,r,r,r,r,~{x8},~{memory}";
+        // Use explicit register constraints
+        constraints = "={x0},{x8},{x0},{x1},{x2},{x3},{x4},{x5},~{memory}";
     }
     
     // Create function type for inline assembly

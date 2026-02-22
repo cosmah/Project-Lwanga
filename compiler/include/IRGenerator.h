@@ -78,6 +78,9 @@ private:
     void generateFunctionDeclarations(ProgramAST* program);
     void generateConstantDeclarations(ProgramAST* program);
     
+    // Generate _start function wrapper for freestanding executables
+    void generateStartFunction();
+    
     // Generate function
     void generateFunction(FunctionAST* func);
     
