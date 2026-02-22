@@ -579,20 +579,20 @@ The implementation prioritizes core functionality first, with security-specific 
     - Test error reporting
     - _Requirements: 12.1-12.8_
 
-- [ ] 23. Implement cross-compilation support
-  - [ ] 23.1 Add target triple validation
+- [x] 23. Implement cross-compilation support
+  - [x] 23.1 Add target triple validation
     - Parse --target flag
     - Validate supported targets
     - Report errors for unsupported targets
     - _Requirements: 26.1, 26.5_
   
-  - [ ] 23.2 Implement platform-specific code generation
+  - [x] 23.2 Implement platform-specific code generation
     - Generate platform-specific syscall interfaces
     - Use platform-specific calling conventions
     - Handle platform differences in IR generation
     - _Requirements: 26.2, 26.3, 26.4_
   
-  - [ ]* 23.3 Write unit tests for cross-compilation
+  - [x]* 23.3 Write unit tests for cross-compilation
     - Test target triple parsing
     - Test platform-specific code generation
     - _Requirements: 26.1-26.5_

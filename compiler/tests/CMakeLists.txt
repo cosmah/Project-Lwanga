@@ -87,4 +87,9 @@ add_test(NAME DriverIntegrationTest
          COMMAND driver_integration_test
          WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
+# Cross-compilation test (Task 23.3)
+add_executable(cross_compilation_test cross_compilation_test.cpp)
+target_link_libraries(cross_compilation_test lwanga_backend lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
+add_test(NAME CrossCompilationTest COMMAND cross_compilation_test)
+
 # Tests will be added as we implement components

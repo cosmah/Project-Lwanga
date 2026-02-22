@@ -41,6 +41,29 @@ Backend::Backend(llvm::Module* mod, unsigned opt)
 Backend::~Backend() {}
 
 bool Backend::setTargetTriple(const std::string& triple) {
+    // Validate supported targets
+    // Supported: x86_64-linux, aarch64-linux, x86_64-windows, aarch64-windows
+    bool isSupported = false;
+    
+    // Check for supported architectures and platforms
+    if (triple.find("x86_64") != std::string::npos || triple.find("x86-64") != std::string::npos) {
+        // x86_64 architecture
+        if (triple.find("linux") != std::string::npos || triple.find("windows") != std::string::npos) {
+            isSupported = true;
+        }
+    } else if (triple.find("aarch64") != std::string::npos || triple.find("arm64") != std::string::npos) {
+        // ARM64 architecture
+        if (triple.find("linux") != std::string::npos || triple.find("windows") != std::string::npos) {
+            isSupported = true;
+        }
+    }
+    
+    if (!isSupported) {
+        setError("Unsupported target triple: " + triple + 
+                 "\nSupported targets: x86_64-linux-gnu, aarch64-linux-gnu, x86_64-windows, aarch64-windows");
+        return false;
+    }
+    
     targetTriple = triple;
     module->setTargetTriple(triple);
     
