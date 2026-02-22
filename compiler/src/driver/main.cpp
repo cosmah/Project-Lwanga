@@ -44,6 +44,10 @@ static cl::opt<bool> Verbose("v",
     cl::desc("Enable verbose output"),
     cl::init(false));
 
+static cl::opt<bool> EmitLLVM("emit-llvm",
+    cl::desc("Display generated LLVM IR"),
+    cl::init(false));
+
 static cl::opt<std::string> TargetTriple("target",
     cl::desc("Target triple for cross-compilation"),
     cl::value_desc("triple"),
@@ -224,6 +228,13 @@ int main(int argc, char **argv) {
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::high_resolution_clock::now() - irGenStart).count();
         std::cout << "  Generated IR in " << elapsed << "ms\n\n";
+    }
+    
+    // Display LLVM IR if requested
+    if (EmitLLVM) {
+        std::cout << "=== Generated LLVM IR ===\n";
+        irGen.getModule()->print(llvm::outs(), nullptr);
+        std::cout << "\n=== End of LLVM IR ===\n\n";
     }
     
     // Stage 4: Backend Setup

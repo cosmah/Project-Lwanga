@@ -80,4 +80,11 @@ add_executable(obfuscation_test obfuscation_test.cpp)
 target_link_libraries(obfuscation_test lwanga_backend lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
 add_test(NAME ObfuscationTest COMMAND obfuscation_test)
 
+# Driver integration test (Task 22.6)
+add_executable(driver_integration_test driver_integration_test.cpp)
+# No linking needed - runs lwangac as subprocess
+add_test(NAME DriverIntegrationTest 
+         COMMAND driver_integration_test
+         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
 # Tests will be added as we implement components

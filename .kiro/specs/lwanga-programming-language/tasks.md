@@ -561,7 +561,7 @@ The implementation prioritizes core functionality first, with security-specific 
     - Report all errors found during compilation
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
   
-  - [ ] 22.4 Add verbose mode
+  - [x] 22.4 Add verbose mode
     - Display compilation stages when -v is set
     - Show timing information for each stage
     - Display LLVM IR when requested
@@ -573,7 +573,7 @@ The implementation prioritizes core functionality first, with security-specific 
     - Strip debug symbols when -g is not set
     - _Requirements: 25.1, 25.2, 25.3, 25.4_
   
-  - [ ]* 22.6 Write integration tests for compiler driver
+  - [x]* 22.6 Write integration tests for compiler driver
     - Test end-to-end compilation
     - Test various flag combinations
     - Test error reporting
