@@ -1,0 +1,107 @@
+// ┌─────────────────────────────────────────────────────────────┐
+// │                                                             │
+// │   ██╗     ██╗    ██╗ █████╗ ███╗   ██╗ ██████╗  █████╗    │
+// │   ██║     ██║    ██║██╔══██╗████╗  ██║██╔════╝ ██╔══██╗   │
+// │   ██║     ██║ █╗ ██║███████║██╔██╗ ██║██║  ███╗███████║   │
+// │   ██║     ██║███╗██║██╔══██║██║╚██╗██║██║   ██║██╔══██║   │
+// │   ███████╗╚███╔███╔╝██║  ██║██║ ╚████║╚██████╔╝██║  ██║   │
+// │   ╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝   │
+// │                                                             │
+// │   Security-Focused Systems Programming Language            │
+// │                                                             │
+// └─────────────────────────────────────────────────────────────┘
+//
+// ⚠️  SECURITY RESEARCH TOOL - EDUCATIONAL USE ONLY
+//
+// Project: Lwanga Examples
+// File: shellcode.lwanga
+// Author: Lwanga Team
+// Created: 2024-02-22
+// License: MIT
+//
+// Description:
+//   Position-independent shellcode example demonstrating:
+//   - Naked functions (no prologue/epilogue)
+//   - Inline assembly with Intel syntax
+//   - Direct syscall invocation
+//   - Position-independent code (PIC)
+//
+// Compile: lwangac shellcode.lwanga -o shellcode --pic
+// Extract: objcopy -O binary -j .text shellcode shellcode.bin
+//
+// ⚠️  WARNING: This code is for security research and education only.
+//              Unauthorized use may be illegal in your jurisdiction.
+//
+// Copyright (c) 2024 Lwanga Project
+// ─────────────────────────────────────────────────────────────
+
+// Naked function - no prologue/epilogue
+naked fn _start() -> u64 {
+    unsafe {
+        // Execute /bin/sh using execve syscall
+        // This is a minimal shellcode that spawns a shell
+        
+        asm {
+            // Push null terminator
+            xor rax, rax
+            push rax
+            
+            // Push "/bin/sh" string (8 bytes)
+            mov rax, 0x68732f6e69622f
+            push rax
+            
+            // Setup execve arguments
+            mov rdi, rsp          // filename = "/bin/sh"
+            xor rsi, rsi          // argv = NULL
+            xor rdx, rdx          // envp = NULL
+            mov rax, 59           // syscall number for execve
+            syscall
+            
+            // If execve fails, exit
+            mov rax, 60           // syscall number for exit
+            xor rdi, rdi          // exit code = 0
+            syscall
+        }
+    }
+    
+    return 0;
+}
+
+// Alternative: Function-based shellcode
+fn execve_shell() -> u64 {
+    unsafe {
+        // Build "/bin/sh" string on stack
+        let mut path: [u64; 2] = [0x68732f6e69622f, 0];
+        
+        // Call execve(path, NULL, NULL)
+        let result: u64 = syscall(59, &path as ptr, 0, 0);
+        
+        // If we get here, execve failed
+        return result;
+    }
+}
+
+// For testing: regular main function
+fn write(fd: u64, buf: ptr, count: u64) -> u64 {
+    unsafe {
+        return syscall(1, fd, buf, count);
+    }
+}
+
+fn exit(code: u64) -> u64 {
+    unsafe {
+        return syscall(60, code, 0, 0);
+    }
+}
+
+fn main() -> u64 {
+    write(1, "Shellcode example - spawning shell...\n", 39);
+    
+    // Call the shellcode function
+    execve_shell();
+    
+    // If we get here, execve failed
+    write(2, "Failed to spawn shell\n", 22);
+    exit(1);
+    return 0;
+}
