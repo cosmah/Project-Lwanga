@@ -8,6 +8,14 @@
 
 namespace lwanga {
 
+// Source location for AST nodes
+struct SourceLocation {
+    uint32_t line;
+    uint32_t column;
+    
+    SourceLocation(uint32_t l = 0, uint32_t c = 0) : line(l), column(c) {}
+};
+
 // Forward declarations for visitor pattern
 class ASTVisitor;
 class ExprAST;
@@ -58,6 +66,10 @@ struct Type {
 // Base AST node
 class ASTNode {
 public:
+    SourceLocation loc;
+    
+    ASTNode() : loc(0, 0) {}
+    explicit ASTNode(SourceLocation l) : loc(l) {}
     virtual ~ASTNode() = default;
 };
 
@@ -65,6 +77,8 @@ public:
 
 class ExprAST : public ASTNode {
 public:
+    ExprAST() : ASTNode() {}
+    explicit ExprAST(SourceLocation l) : ASTNode(l) {}
     virtual ~ExprAST() = default;
 };
 
@@ -73,7 +87,8 @@ class IntLiteralExpr : public ExprAST {
 public:
     uint64_t value;
     
-    explicit IntLiteralExpr(uint64_t val) : value(val) {}
+    IntLiteralExpr(uint64_t val, SourceLocation l = SourceLocation()) 
+        : ExprAST(l), value(val) {}
 };
 
 // String literal
@@ -81,7 +96,8 @@ class StringLiteralExpr : public ExprAST {
 public:
     std::string value;
     
-    explicit StringLiteralExpr(const std::string& val) : value(val) {}
+    StringLiteralExpr(const std::string& val, SourceLocation l = SourceLocation()) 
+        : ExprAST(l), value(val) {}
 };
 
 // Identifier (variable reference)
@@ -89,7 +105,8 @@ class IdentifierExpr : public ExprAST {
 public:
     std::string name;
     
-    explicit IdentifierExpr(const std::string& n) : name(n) {}
+    IdentifierExpr(const std::string& n, SourceLocation l = SourceLocation()) 
+        : ExprAST(l), name(n) {}
 };
 
 // Binary expression
@@ -99,8 +116,8 @@ public:
     BinaryOp op;
     std::unique_ptr<ExprAST> right;
     
-    BinaryExpr(std::unique_ptr<ExprAST> l, BinaryOp o, std::unique_ptr<ExprAST> r)
-        : left(std::move(l)), op(o), right(std::move(r)) {}
+    BinaryExpr(std::unique_ptr<ExprAST> l, BinaryOp o, std::unique_ptr<ExprAST> r, SourceLocation loc = SourceLocation())
+        : ExprAST(loc), left(std::move(l)), op(o), right(std::move(r)) {}
 };
 
 // Unary expression
@@ -109,8 +126,8 @@ public:
     UnaryOp op;
     std::unique_ptr<ExprAST> operand;
     
-    UnaryExpr(UnaryOp o, std::unique_ptr<ExprAST> expr)
-        : op(o), operand(std::move(expr)) {}
+    UnaryExpr(UnaryOp o, std::unique_ptr<ExprAST> expr, SourceLocation loc = SourceLocation())
+        : ExprAST(loc), op(o), operand(std::move(expr)) {}
 };
 
 // Function call
@@ -119,8 +136,8 @@ public:
     std::unique_ptr<ExprAST> callee;
     std::vector<std::unique_ptr<ExprAST>> args;
     
-    CallExpr(std::unique_ptr<ExprAST> c, std::vector<std::unique_ptr<ExprAST>> a)
-        : callee(std::move(c)), args(std::move(a)) {}
+    CallExpr(std::unique_ptr<ExprAST> c, std::vector<std::unique_ptr<ExprAST>> a, SourceLocation loc = SourceLocation())
+        : ExprAST(loc), callee(std::move(c)), args(std::move(a)) {}
 };
 
 // Syscall expression
@@ -129,8 +146,8 @@ public:
     std::unique_ptr<ExprAST> syscallNumber;  // Changed from uint64_t to support constants
     std::vector<std::unique_ptr<ExprAST>> args;
     
-    SyscallExpr(std::unique_ptr<ExprAST> num, std::vector<std::unique_ptr<ExprAST>> a)
-        : syscallNumber(std::move(num)), args(std::move(a)) {}
+    SyscallExpr(std::unique_ptr<ExprAST> num, std::vector<std::unique_ptr<ExprAST>> a, SourceLocation loc = SourceLocation())
+        : ExprAST(loc), syscallNumber(std::move(num)), args(std::move(a)) {}
 };
 
 // Encrypted string block
@@ -138,7 +155,8 @@ class EncBlockExpr : public ExprAST {
 public:
     std::string value;
     
-    explicit EncBlockExpr(const std::string& val) : value(val) {}
+    EncBlockExpr(const std::string& val, SourceLocation loc = SourceLocation()) 
+        : ExprAST(loc), value(val) {}
 };
 
 // Type cast
@@ -147,8 +165,8 @@ public:
     std::unique_ptr<ExprAST> expr;
     std::unique_ptr<Type> targetType;
     
-    CastExpr(std::unique_ptr<ExprAST> e, std::unique_ptr<Type> t)
-        : expr(std::move(e)), targetType(std::move(t)) {}
+    CastExpr(std::unique_ptr<ExprAST> e, std::unique_ptr<Type> t, SourceLocation loc = SourceLocation())
+        : ExprAST(loc), expr(std::move(e)), targetType(std::move(t)) {}
 };
 
 // Array indexing
@@ -157,8 +175,8 @@ public:
     std::unique_ptr<ExprAST> array;
     std::unique_ptr<ExprAST> index;
     
-    ArrayIndexExpr(std::unique_ptr<ExprAST> arr, std::unique_ptr<ExprAST> idx)
-        : array(std::move(arr)), index(std::move(idx)) {}
+    ArrayIndexExpr(std::unique_ptr<ExprAST> arr, std::unique_ptr<ExprAST> idx, SourceLocation loc = SourceLocation())
+        : ExprAST(loc), array(std::move(arr)), index(std::move(idx)) {}
 };
 
 // Field access (struct.field)
@@ -167,8 +185,8 @@ public:
     std::unique_ptr<ExprAST> object;
     std::string fieldName;
     
-    FieldAccessExpr(std::unique_ptr<ExprAST> obj, const std::string& field)
-        : object(std::move(obj)), fieldName(field) {}
+    FieldAccessExpr(std::unique_ptr<ExprAST> obj, const std::string& field, SourceLocation loc = SourceLocation())
+        : ExprAST(loc), object(std::move(obj)), fieldName(field) {}
 };
 
 // Struct initialization
@@ -178,14 +196,17 @@ public:
     std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> fields;
     
     StructInitExpr(const std::string& name, 
-                   std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> f)
-        : structName(name), fields(std::move(f)) {}
+                   std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> f,
+                   SourceLocation loc = SourceLocation())
+        : ExprAST(loc), structName(name), fields(std::move(f)) {}
 };
 
 // ===== Statement Nodes =====
 
 class StmtAST : public ASTNode {
 public:
+    StmtAST() : ASTNode() {}
+    explicit StmtAST(SourceLocation l) : ASTNode(l) {}
     virtual ~StmtAST() = default;
 };
 
@@ -198,8 +219,8 @@ public:
     bool isMutable;
     
     VarDeclStmt(const std::string& n, std::unique_ptr<Type> t, 
-                std::unique_ptr<ExprAST> init, bool mut)
-        : name(n), type(std::move(t)), initializer(std::move(init)), isMutable(mut) {}
+                std::unique_ptr<ExprAST> init, bool mut, SourceLocation loc = SourceLocation())
+        : StmtAST(loc), name(n), type(std::move(t)), initializer(std::move(init)), isMutable(mut) {}
 };
 
 // Assignment
@@ -208,8 +229,8 @@ public:
     std::unique_ptr<ExprAST> target;
     std::unique_ptr<ExprAST> value;
     
-    AssignmentStmt(std::unique_ptr<ExprAST> t, std::unique_ptr<ExprAST> v)
-        : target(std::move(t)), value(std::move(v)) {}
+    AssignmentStmt(std::unique_ptr<ExprAST> t, std::unique_ptr<ExprAST> v, SourceLocation loc = SourceLocation())
+        : StmtAST(loc), target(std::move(t)), value(std::move(v)) {}
 };
 
 // If statement
@@ -221,8 +242,9 @@ public:
     
     IfStmt(std::unique_ptr<ExprAST> cond,
            std::vector<std::unique_ptr<StmtAST>> thenB,
-           std::vector<std::unique_ptr<StmtAST>> elseB)
-        : condition(std::move(cond)), thenBlock(std::move(thenB)), elseBlock(std::move(elseB)) {}
+           std::vector<std::unique_ptr<StmtAST>> elseB,
+           SourceLocation loc = SourceLocation())
+        : StmtAST(loc), condition(std::move(cond)), thenBlock(std::move(thenB)), elseBlock(std::move(elseB)) {}
 };
 
 // While loop
@@ -231,8 +253,8 @@ public:
     std::unique_ptr<ExprAST> condition;
     std::vector<std::unique_ptr<StmtAST>> body;
     
-    WhileStmt(std::unique_ptr<ExprAST> cond, std::vector<std::unique_ptr<StmtAST>> b)
-        : condition(std::move(cond)), body(std::move(b)) {}
+    WhileStmt(std::unique_ptr<ExprAST> cond, std::vector<std::unique_ptr<StmtAST>> b, SourceLocation loc = SourceLocation())
+        : StmtAST(loc), condition(std::move(cond)), body(std::move(b)) {}
 };
 
 // Return statement
@@ -240,7 +262,8 @@ class ReturnStmt : public StmtAST {
 public:
     std::unique_ptr<ExprAST> value;
     
-    explicit ReturnStmt(std::unique_ptr<ExprAST> val) : value(std::move(val)) {}
+    ReturnStmt(std::unique_ptr<ExprAST> val, SourceLocation loc = SourceLocation()) 
+        : StmtAST(loc), value(std::move(val)) {}
 };
 
 // Expression statement
@@ -248,7 +271,8 @@ class ExprStmt : public StmtAST {
 public:
     std::unique_ptr<ExprAST> expr;
     
-    explicit ExprStmt(std::unique_ptr<ExprAST> e) : expr(std::move(e)) {}
+    ExprStmt(std::unique_ptr<ExprAST> e, SourceLocation loc = SourceLocation()) 
+        : StmtAST(loc), expr(std::move(e)) {}
 };
 
 // Inline assembly operand (for inputs/outputs)
@@ -268,13 +292,15 @@ public:
     std::vector<AsmOperand> inputs;    // input operands
     std::vector<std::string> clobbers; // clobbered registers
     
-    explicit AsmStmt(const std::string& code) : asmCode(code) {}
+    AsmStmt(const std::string& code, SourceLocation loc = SourceLocation()) 
+        : StmtAST(loc), asmCode(code) {}
     
     AsmStmt(const std::string& code,
             std::vector<AsmOperand> out,
             std::vector<AsmOperand> in,
-            std::vector<std::string> clob)
-        : asmCode(code), outputs(std::move(out)), inputs(std::move(in)), clobbers(std::move(clob)) {}
+            std::vector<std::string> clob,
+            SourceLocation loc = SourceLocation())
+        : StmtAST(loc), asmCode(code), outputs(std::move(out)), inputs(std::move(in)), clobbers(std::move(clob)) {}
 };
 
 // Unsafe block
@@ -282,7 +308,8 @@ class UnsafeBlockStmt : public StmtAST {
 public:
     std::vector<std::unique_ptr<StmtAST>> body;
     
-    explicit UnsafeBlockStmt(std::vector<std::unique_ptr<StmtAST>> b) : body(std::move(b)) {}
+    UnsafeBlockStmt(std::vector<std::unique_ptr<StmtAST>> b, SourceLocation loc = SourceLocation()) 
+        : StmtAST(loc), body(std::move(b)) {}
 };
 
 // ===== Top-Level Nodes =====
@@ -307,8 +334,8 @@ public:
     
     FunctionAST(const std::string& n, std::vector<Parameter> p,
                 std::unique_ptr<Type> ret, std::vector<std::unique_ptr<StmtAST>> b,
-                bool naked = false)
-        : name(n), params(std::move(p)), returnType(std::move(ret)), 
+                bool naked = false, SourceLocation loc = SourceLocation())
+        : ASTNode(loc), name(n), params(std::move(p)), returnType(std::move(ret)), 
           body(std::move(b)), isNaked(naked) {}
 };
 
@@ -328,8 +355,8 @@ public:
     std::vector<StructField> fields;
     bool isPacked;
     
-    StructAST(const std::string& n, std::vector<StructField> f, bool packed = false)
-        : name(n), fields(std::move(f)), isPacked(packed) {}
+    StructAST(const std::string& n, std::vector<StructField> f, bool packed = false, SourceLocation loc = SourceLocation())
+        : ASTNode(loc), name(n), fields(std::move(f)), isPacked(packed) {}
 };
 
 // Constant definition
@@ -339,8 +366,8 @@ public:
     std::unique_ptr<Type> type;
     std::unique_ptr<ExprAST> value;
     
-    ConstantAST(const std::string& n, std::unique_ptr<Type> t, std::unique_ptr<ExprAST> v)
-        : name(n), type(std::move(t)), value(std::move(v)) {}
+    ConstantAST(const std::string& n, std::unique_ptr<Type> t, std::unique_ptr<ExprAST> v, SourceLocation loc = SourceLocation())
+        : ASTNode(loc), name(n), type(std::move(t)), value(std::move(v)) {}
 };
 
 // Import statement
@@ -348,7 +375,8 @@ class ImportAST : public ASTNode {
 public:
     std::string path;
     
-    explicit ImportAST(const std::string& p) : path(p) {}
+    ImportAST(const std::string& p, SourceLocation loc = SourceLocation()) 
+        : ASTNode(loc), path(p) {}
 };
 
 // Program (top-level container)

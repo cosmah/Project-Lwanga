@@ -1,12 +1,16 @@
 #include "IRGenerator.h"
 #include <llvm/IR/Verifier.h>
 #include <llvm/IR/InlineAsm.h>
+#include <llvm/IR/DebugInfoMetadata.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/Path.h>
 #include <iostream>
 
 namespace lwanga {
 
-IRGenerator::IRGenerator(const std::string& moduleName) 
-    : currentFunction(nullptr) {
+IRGenerator::IRGenerator(const std::string& moduleName, const std::string& sourceFile) 
+    : currentFunction(nullptr), generateDebugInfo(false), 
+      sourceFilename(sourceFile), compileUnit(nullptr), debugFile(nullptr) {
     context = std::make_unique<llvm::LLVMContext>();
     module = std::make_unique<llvm::Module>(moduleName, *context);
     builder = std::make_unique<llvm::IRBuilder<>>(*context);
@@ -24,6 +28,11 @@ bool IRGenerator::generate(ProgramAST* program) {
         return false;
     }
     
+    // Initialize debug info if enabled
+    if (generateDebugInfo) {
+        initializeDebugInfo();
+    }
+    
     // First pass: Generate struct declarations
     generateStructDeclarations(program);
     
@@ -36,6 +45,11 @@ bool IRGenerator::generate(ProgramAST* program) {
     // Fourth pass: Generate function bodies
     for (auto& func : program->functions) {
         generateFunction(func.get());
+    }
+    
+    // Finalize debug info if enabled
+    if (generateDebugInfo) {
+        finalizeDebugInfo();
     }
     
     // Verify the module
@@ -214,6 +228,46 @@ void IRGenerator::generateFunction(FunctionAST* func) {
     
     currentFunction = llvmFunc;
     
+    // Create debug info for function if enabled
+    llvm::DISubprogram* debugFunc = nullptr;
+    if (generateDebugInfo && debugBuilder) {
+        // Create function type for debug info
+        llvm::SmallVector<llvm::Metadata*, 8> debugParamTypes;
+        
+        // Return type
+        llvm::DIType* returnType = getDebugType(func->returnType.get());
+        debugParamTypes.push_back(returnType);
+        
+        // Parameter types
+        for (const auto& param : func->params) {
+            llvm::DIType* paramType = getDebugType(param.type.get());
+            debugParamTypes.push_back(paramType);
+        }
+        
+        llvm::DISubroutineType* debugFuncType = debugBuilder->createSubroutineType(
+            debugBuilder->getOrCreateTypeArray(debugParamTypes)
+        );
+        
+        // Create subprogram using source location from AST
+        debugFunc = debugBuilder->createFunction(
+            debugFile,                    // Scope
+            func->name,                   // Name
+            llvm::StringRef(),            // Linkage name
+            debugFile,                    // File
+            func->loc.line > 0 ? func->loc.line : 1,  // Line number
+            debugFuncType,                // Type
+            func->loc.line > 0 ? func->loc.line : 1,  // Scope line
+            llvm::DINode::FlagPrototyped, // Flags
+            llvm::DISubprogram::SPFlagDefinition
+        );
+        
+        llvmFunc->setSubprogram(debugFunc);
+        lexicalBlocks.push_back(debugFunc);
+        
+        // Emit location for function start
+        emitLocation(func->loc.line > 0 ? func->loc.line : 1, func->loc.column);
+    }
+    
     // Create entry basic block
     llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(*context, "entry", llvmFunc);
     builder->SetInsertPoint(entryBB);
@@ -223,6 +277,7 @@ void IRGenerator::generateFunction(FunctionAST* func) {
     namedTypes.clear();
     
     // Allocate space for parameters and store them
+    unsigned argIdx = 0;
     for (auto& arg : llvmFunc->args()) {
         llvm::AllocaInst* alloca = builder->CreateAlloca(
             arg.getType(),
@@ -232,6 +287,28 @@ void IRGenerator::generateFunction(FunctionAST* func) {
         builder->CreateStore(&arg, alloca);
         namedValues[std::string(arg.getName())] = alloca;
         namedTypes[std::string(arg.getName())] = arg.getType();
+        
+        // Create debug info for parameter
+        if (generateDebugInfo && debugBuilder && debugFunc && argIdx < func->params.size()) {
+            llvm::DILocalVariable* debugParam = debugBuilder->createParameterVariable(
+                debugFunc,                                    // Scope
+                func->params[argIdx].name,                   // Name
+                argIdx + 1,                                  // Arg number (1-based)
+                debugFile,                                   // File
+                func->loc.line > 0 ? func->loc.line : 1,    // Line
+                getDebugType(func->params[argIdx].type.get()) // Type
+            );
+            
+            debugBuilder->insertDeclare(
+                alloca,
+                debugParam,
+                debugBuilder->createExpression(),
+                llvm::DILocation::get(*context, func->loc.line > 0 ? func->loc.line : 1, 0, debugFunc),
+                builder->GetInsertBlock()
+            );
+        }
+        
+        argIdx++;
     }
     
     // Generate function body
@@ -247,6 +324,11 @@ void IRGenerator::generateFunction(FunctionAST* func) {
             // Return zero as default
             builder->CreateRet(llvm::ConstantInt::get(llvmFunc->getReturnType(), 0));
         }
+    }
+    
+    // Pop debug scope
+    if (generateDebugInfo && !lexicalBlocks.empty()) {
+        lexicalBlocks.pop_back();
     }
     
     // Verify the function
@@ -1644,6 +1726,112 @@ llvm::Value* IRGenerator::generateEncBlock(EncBlockExpr* expr) {
     );
     
     return bufferPtr;
+}
+
+// Debug info helpers
+void IRGenerator::initializeDebugInfo() {
+    // Create debug info builder
+    debugBuilder = std::make_unique<llvm::DIBuilder>(*module);
+    
+    // Get absolute path for source file
+    llvm::SmallString<256> absPath;
+    if (!sourceFilename.empty()) {
+        llvm::sys::fs::real_path(sourceFilename, absPath);
+    } else {
+        absPath = "unknown.lwanga";
+    }
+    
+    // Extract directory and filename
+    llvm::StringRef filename = llvm::sys::path::filename(absPath);
+    llvm::SmallString<256> directory = absPath;
+    llvm::sys::path::remove_filename(directory);
+    
+    // Create debug file
+    debugFile = debugBuilder->createFile(filename, directory);
+    
+    // Create compile unit
+    compileUnit = debugBuilder->createCompileUnit(
+        llvm::dwarf::DW_LANG_C,  // Use C language tag (closest to Lwanga)
+        debugFile,
+        "Lwanga Compiler v0.1.0",  // Producer
+        false,  // isOptimized (will be set by backend)
+        "",     // Flags
+        0       // Runtime version
+    );
+    
+    // Set module debug info
+    module->addModuleFlag(llvm::Module::Warning, "Debug Info Version", 
+                         llvm::DEBUG_METADATA_VERSION);
+    module->addModuleFlag(llvm::Module::Warning, "Dwarf Version", 4);
+}
+
+void IRGenerator::finalizeDebugInfo() {
+    if (debugBuilder) {
+        debugBuilder->finalize();
+    }
+}
+
+llvm::DIType* IRGenerator::getDebugType(const Type* type) {
+    if (!type || !debugBuilder) {
+        return nullptr;
+    }
+    
+    switch (type->kind) {
+        case TypeKind::U8:
+            return debugBuilder->createBasicType("u8", 8, llvm::dwarf::DW_ATE_unsigned);
+        case TypeKind::U16:
+            return debugBuilder->createBasicType("u16", 16, llvm::dwarf::DW_ATE_unsigned);
+        case TypeKind::U32:
+            return debugBuilder->createBasicType("u32", 32, llvm::dwarf::DW_ATE_unsigned);
+        case TypeKind::U64:
+            return debugBuilder->createBasicType("u64", 64, llvm::dwarf::DW_ATE_unsigned);
+        case TypeKind::Ptr:
+            return debugBuilder->createPointerType(
+                debugBuilder->createBasicType("u8", 8, llvm::dwarf::DW_ATE_unsigned),
+                64  // Pointer size in bits
+            );
+        case TypeKind::Array: {
+            llvm::DIType* elemType = getDebugType(type->elementType.get());
+            if (!elemType) return nullptr;
+            
+            llvm::Metadata* subscript = debugBuilder->getOrCreateSubrange(0, type->arraySize);
+            llvm::DINodeArray subscripts = debugBuilder->getOrCreateArray({subscript});
+            
+            return debugBuilder->createArrayType(
+                type->arraySize * elemType->getSizeInBits(),
+                elemType->getAlignInBits(),
+                elemType,
+                subscripts
+            );
+        }
+        case TypeKind::Struct:
+            // For structs, we'd need to create a composite type
+            // For now, return a basic opaque type
+            return debugBuilder->createBasicType(type->structName, 64, llvm::dwarf::DW_ATE_unsigned);
+        case TypeKind::FunctionPointer:
+            // Function pointers are represented as generic pointers
+            return debugBuilder->createPointerType(nullptr, 64);
+        case TypeKind::Register:
+            return debugBuilder->createBasicType("register", 64, llvm::dwarf::DW_ATE_unsigned);
+    }
+    
+    return nullptr;
+}
+
+void IRGenerator::emitLocation(uint32_t line, uint32_t column) {
+    if (!generateDebugInfo || !debugBuilder || lexicalBlocks.empty()) {
+        return;
+    }
+    
+    llvm::DIScope* scope = lexicalBlocks.back();
+    llvm::DILocation* loc = llvm::DILocation::get(
+        *context,
+        line,
+        column,
+        scope
+    );
+    
+    builder->SetCurrentDebugLocation(loc);
 }
 
 } // namespace lwanga

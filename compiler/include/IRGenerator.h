@@ -6,6 +6,8 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
+#include <llvm/IR/DIBuilder.h>
+#include <llvm/IR/DebugInfoMetadata.h>
 #include <memory>
 #include <unordered_map>
 #include <string>
@@ -15,8 +17,11 @@ namespace lwanga {
 // IR generation for Lwanga AST
 class IRGenerator {
 public:
-    IRGenerator(const std::string& moduleName);
+    IRGenerator(const std::string& moduleName, const std::string& sourceFile = "");
     ~IRGenerator();
+    
+    // Enable/disable debug info generation
+    void setDebugInfo(bool enable) { generateDebugInfo = enable; }
     
     // Generate IR for entire program
     bool generate(ProgramAST* program);
@@ -50,6 +55,14 @@ private:
     
     // Current function being generated
     llvm::Function* currentFunction;
+    
+    // Debug info generation
+    bool generateDebugInfo;
+    std::string sourceFilename;
+    std::unique_ptr<llvm::DIBuilder> debugBuilder;
+    llvm::DICompileUnit* compileUnit;
+    llvm::DIFile* debugFile;
+    std::vector<llvm::DIScope*> lexicalBlocks;
     
     // Error messages
     std::vector<std::string> errors;
@@ -107,6 +120,12 @@ private:
     // Scope management
     void enterScope();
     void exitScope();
+    
+    // Debug info helpers
+    void initializeDebugInfo();
+    void finalizeDebugInfo();
+    llvm::DIType* getDebugType(const Type* type);
+    void emitLocation(uint32_t line, uint32_t column);
     
     // Helper to save/restore named values for nested scopes
     std::vector<std::unordered_map<std::string, llvm::Value*>> scopeStack;

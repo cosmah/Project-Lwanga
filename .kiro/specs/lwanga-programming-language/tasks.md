@@ -536,15 +536,15 @@ The implementation prioritizes core functionality first, with security-specific 
     - Verify semantic preservation
     - _Requirements: 24.1-24.5_
 
-- [ ] 22. Implement compiler driver and CLI
-  - [ ] 22.1 Implement command-line argument parsing
+- [x] 22. Implement compiler driver and CLI
+  - [x] 22.1 Implement command-line argument parsing
     - Parse input file paths
     - Parse -o output flag
     - Parse -O optimization level flags
     - Parse --jit, --target, -v, -g, --obfuscate, --pic flags
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6_
   
-  - [ ] 22.2 Orchestrate compilation pipeline
+  - [x] 22.2 Orchestrate compilation pipeline
     - Read source files
     - Run lexer, parser, type checker for each file
     - Merge ASTs from multiple files
@@ -553,7 +553,7 @@ The implementation prioritizes core functionality first, with security-specific 
     - Generate output (executable, object, or JIT)
     - _Requirements: 12.1-12.8_
   
-  - [ ] 22.3 Implement error reporting
+  - [x] 22.3 Implement error reporting
     - Display errors in human-readable format
     - Show source location with line/column numbers
     - Display source context and error messages
@@ -567,7 +567,7 @@ The implementation prioritizes core functionality first, with security-specific 
     - Display LLVM IR when requested
     - _Requirements: 12.5_
   
-  - [ ] 22.5 Add debugging information support
+  - [x] 22.5 Add debugging information support
     - Generate DWARF debug info when -g is set
     - Map generated code to source line numbers
     - Strip debug symbols when -g is not set

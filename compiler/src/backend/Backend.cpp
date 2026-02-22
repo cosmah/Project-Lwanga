@@ -3,6 +3,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Transforms/Utils/Cloning.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
@@ -272,9 +273,13 @@ int Backend::executeJIT() {
         return -1;
     }
     
+    // Clone the module for JIT execution (ExecutionEngine takes ownership)
+    // This prevents double-free when IRGenerator's module is destroyed
+    std::unique_ptr<llvm::Module> jitModule = llvm::CloneModule(*module);
+    
     // Create execution engine
     std::string error;
-    llvm::ExecutionEngine* engine = llvm::EngineBuilder(std::unique_ptr<llvm::Module>(module))
+    llvm::ExecutionEngine* engine = llvm::EngineBuilder(std::move(jitModule))
         .setErrorStr(&error)
         .setEngineKind(llvm::EngineKind::JIT)
         .create();
@@ -285,7 +290,7 @@ int Backend::executeJIT() {
     }
     
     // Find main function
-    llvm::Function* mainFunc = module->getFunction("main");
+    llvm::Function* mainFunc = engine->FindFunctionNamed("main");
     if (!mainFunc) {
         setError("No main function found");
         delete engine;
@@ -296,11 +301,14 @@ int Backend::executeJIT() {
     std::vector<llvm::GenericValue> args;
     llvm::GenericValue result = engine->runFunction(mainFunc, args);
     
+    // Get result before cleaning up
+    int exitCode = static_cast<int>(result.IntVal.getZExtValue());
+    
     // Clean up
     delete engine;
     
     // Return result as integer
-    return static_cast<int>(result.IntVal.getZExtValue());
+    return exitCode;
 }
 
 void Backend::setError(const std::string& error) {
