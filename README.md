@@ -186,11 +186,12 @@ fn main() -> u64 {
 
 | Document | Description |
 |----------|-------------|
+| [**Tutorial Series**](docs/tutorial/README.md) | 40-lesson comprehensive learning path |
 | [**Language Reference**](docs/language-reference.md) | Complete language specification |
-| [**Tutorial**](docs/tutorial.md) | Step-by-step learning guide |
 | [**Installation Guide**](INSTALL.md) | Platform-specific installation |
 | [**Syscall Reference**](docs/syscalls.md) | System call documentation |
-| [**API Documentation**](docs/api/) | Standard library API |
+| [**Style Guide**](docs/style-guide.md) | Coding conventions |
+| [**Cheat Sheet**](docs/cheat-sheet.md) | Quick syntax reference |
 
 ### 🛠️ Tools Documentation
 
@@ -332,7 +333,7 @@ ctest --output-on-failure -j$(nproc)
 We welcome contributions! Please see:
 - [Contributing Guidelines](CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Development Guide](docs/development.md)
+- [Style Guide](docs/style-guide.md)
 
 ---
 
@@ -356,8 +357,6 @@ We welcome contributions! Please see:
 - Native Windows syscall support
 - Advanced optimization passes
 - Garbage collection (optional)
-
-**📋 Full roadmap**: [ROADMAP.md](ROADMAP.md)
 
 ---
 
@@ -415,7 +414,7 @@ If you use Lwanga in your research or project, please cite:
 
 <div align="center">
 
-**Made with ❤️ by [Cosmc Technologies](https://github.com/cosmah)**
+**Made by [Cosmc Technologies](https://github.com/cosmah)**
 
 [⬆ Back to Top](#lwanga-programming-language)
 
