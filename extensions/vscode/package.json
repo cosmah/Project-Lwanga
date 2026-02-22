@@ -1,0 +1,136 @@
+{
+  "name": "lwanga",
+  "displayName": "Lwanga Language Support",
+  "description": "Syntax highlighting, snippets, and language support for Lwanga - a security-focused systems programming language",
+  "version": "1.0.0",
+  "publisher": "lwanga-lang",
+  "icon": "icons/lwanga-file-128.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lwanga-lang/lwanga"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Formatters"
+  ],
+  "keywords": [
+    "lwanga",
+    "systems programming",
+    "security",
+    "shellcode",
+    "low-level"
+  ],
+  "activationEvents": [
+    "onLanguage:lwanga"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "lwanga",
+        "aliases": [
+          "Lwanga",
+          "lwanga"
+        ],
+        "extensions": [
+          ".lwanga"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/lwanga-file-light.svg",
+          "dark": "./icons/lwanga-file-dark.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "lwanga",
+        "scopeName": "source.lwanga",
+        "path": "./syntaxes/lwanga.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "lwanga",
+        "path": "./snippets/lwanga.json"
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "lwanga-icons",
+        "label": "Lwanga File Icons",
+        "path": "./icons/lwanga-icon-theme.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "lwanga.format",
+        "title": "Format Document",
+        "category": "Lwanga"
+      },
+      {
+        "command": "lwanga.addHeader",
+        "title": "Add Logo Header",
+        "category": "Lwanga"
+      },
+      {
+        "command": "lwanga.compile",
+        "title": "Compile Current File",
+        "category": "Lwanga"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "lwanga.format",
+        "key": "shift+alt+f",
+        "when": "editorTextFocus && editorLangId == lwanga"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Lwanga",
+      "properties": {
+        "lwanga.compilerPath": {
+          "type": "string",
+          "default": "lwangac",
+          "description": "Path to the Lwanga compiler (lwangac)"
+        },
+        "lwanga.formatterPath": {
+          "type": "string",
+          "default": "lwangafmt",
+          "description": "Path to the Lwanga formatter (lwangafmt)"
+        },
+        "lwanga.formatOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically format files on save"
+        },
+        "lwanga.compilerArgs": {
+          "type": "array",
+          "default": ["-O2"],
+          "description": "Additional arguments to pass to the compiler"
+        },
+        "lwanga.logoStyle": {
+          "type": "string",
+          "enum": ["minimal", "block", "banner", "none"],
+          "default": "minimal",
+          "description": "Logo style for file headers"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "iconDefinitions": {
+    "_file_lwanga": {
+      "iconPath": "./lwanga-file.svg"
+    },
+    "_file_lwanga_light": {
+      "iconPath": "./lwanga-file-light.svg"
+    },
+    "_file_lwanga_dark": {
+      "iconPath": "./lwanga-file-dark.svg"
+    }
+  },
+  "fileExtensions": {
+    "lwanga": "_file_lwanga"
+  },
+  "file": "_file_lwanga",
+  "light": {
+    "fileExtensions": {
+      "lwanga": "_file_lwanga_light"
+    }
+  },
+  "highContrast": {
+    "fileExtensions": {
+      "lwanga": "_file_lwanga_dark"
+    }
+  }
+}

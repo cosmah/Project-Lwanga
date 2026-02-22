@@ -1,0 +1,171 @@
+{
+  "Function": {
+    "prefix": "fn",
+    "body": [
+      "fn ${1:name}(${2:params}) -> ${3:u64} {",
+      "\t${4:// body}",
+      "\treturn ${5:0};",
+      "}"
+    ],
+    "description": "Function definition"
+  },
+  "Main Function": {
+    "prefix": "main",
+    "body": [
+      "fn main() -> u64 {",
+      "\t${1:// your code here}",
+      "\treturn 0;",
+      "}"
+    ],
+    "description": "Main function"
+  },
+  "Unsafe Block": {
+    "prefix": "unsafe",
+    "body": [
+      "unsafe {",
+      "\t${1:// unsafe code}",
+      "}"
+    ],
+    "description": "Unsafe block"
+  },
+  "Syscall": {
+    "prefix": "syscall",
+    "body": [
+      "syscall(${1:number}, ${2:arg1}, ${3:arg2}, ${4:arg3})"
+    ],
+    "description": "System call"
+  },
+  "Inline Assembly": {
+    "prefix": "asm",
+    "body": [
+      "asm {",
+      "\t${1:// assembly code}",
+      "}"
+    ],
+    "description": "Inline assembly block"
+  },
+  "Naked Function": {
+    "prefix": "naked",
+    "body": [
+      "naked fn ${1:name}() -> ${2:u64} {",
+      "\tasm {",
+      "\t\t${3:// assembly code}",
+      "\t}",
+      "}"
+    ],
+    "description": "Naked function with inline assembly"
+  },
+  "Struct": {
+    "prefix": "struct",
+    "body": [
+      "struct ${1:Name} {",
+      "\t${2:field}: ${3:u64},",
+      "}"
+    ],
+    "description": "Struct definition"
+  },
+  "Packed Struct": {
+    "prefix": "packed",
+    "body": [
+      "packed struct ${1:Name} {",
+      "\t${2:field}: ${3:u64},",
+      "}"
+    ],
+    "description": "Packed struct definition"
+  },
+  "Let Binding": {
+    "prefix": "let",
+    "body": [
+      "let ${1:name}: ${2:u64} = ${3:value};"
+    ],
+    "description": "Variable binding"
+  },
+  "Mutable Let": {
+    "prefix": "letm",
+    "body": [
+      "let mut ${1:name}: ${2:u64} = ${3:value};"
+    ],
+    "description": "Mutable variable binding"
+  },
+  "Const": {
+    "prefix": "const",
+    "body": [
+      "const ${1:NAME}: ${2:u64} = ${3:value};"
+    ],
+    "description": "Constant definition"
+  },
+  "If Statement": {
+    "prefix": "if",
+    "body": [
+      "if ${1:condition} {",
+      "\t${2:// body}",
+      "}"
+    ],
+    "description": "If statement"
+  },
+  "If-Else Statement": {
+    "prefix": "ifelse",
+    "body": [
+      "if ${1:condition} {",
+      "\t${2:// if body}",
+      "} else {",
+      "\t${3:// else body}",
+      "}"
+    ],
+    "description": "If-else statement"
+  },
+  "While Loop": {
+    "prefix": "while",
+    "body": [
+      "while ${1:condition} {",
+      "\t${2:// body}",
+      "}"
+    ],
+    "description": "While loop"
+  },
+  "Import": {
+    "prefix": "import",
+    "body": [
+      "import \"${1:module}\";"
+    ],
+    "description": "Import statement"
+  },
+  "Encrypted String": {
+    "prefix": "enc",
+    "body": [
+      "enc \"${1:string}\""
+    ],
+    "description": "Encrypted string literal"
+  },
+  "File Header": {
+    "prefix": "header",
+    "body": [
+      "//  ╦  ╦ ╦╔═╗╔╗╔╔═╗╔═╗",
+      "//  ║  ║║║╠═╣║║║║ ╦╠═╣",
+      "//  ╩═╝╚╩╝╩ ╩╝╚╝╚═╝╩ ╩",
+      "//",
+      "//  File: ${TM_FILENAME}",
+      "//  Author: ${1:Your Name}",
+      "//  Created: ${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}",
+      "//  Description: ${2:Brief description}",
+      "//",
+      "",
+      "${3}"
+    ],
+    "description": "File header with Lwanga logo"
+  },
+  "Shellcode Template": {
+    "prefix": "shellcode",
+    "body": [
+      "// Shellcode - ${1:Description}",
+      "// Compile: lwangac ${TM_FILENAME} -o ${TM_FILENAME_BASE} --pic",
+      "",
+      "naked fn shellcode() -> u64 {",
+      "\tasm {",
+      "\t\t${2:// your shellcode here}",
+      "\t}",
+      "}"
+    ],
+    "description": "Shellcode template"
+  }
+}

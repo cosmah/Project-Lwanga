@@ -1,0 +1,190 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Lwanga",
+  "scopeName": "source.lwanga",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#preprocessor" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#constants" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#functions" },
+    { "include": "#operators" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.lwanga",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.lwanga",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "preprocessor": {
+      "patterns": [
+        {
+          "name": "meta.preprocessor.lwanga",
+          "match": "^\\s*#(if|else|endif|define)\\b",
+          "captures": {
+            "1": { "name": "keyword.control.preprocessor.lwanga" }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.lwanga",
+          "match": "\\b(if|else|while|return)\\b"
+        },
+        {
+          "name": "keyword.other.lwanga",
+          "match": "\\b(fn|let|mut|const|struct|import|as|packed)\\b"
+        },
+        {
+          "name": "keyword.other.unsafe.lwanga",
+          "match": "\\b(unsafe)\\b"
+        },
+        {
+          "name": "keyword.other.asm.lwanga",
+          "match": "\\b(asm|naked)\\b"
+        },
+        {
+          "name": "keyword.other.syscall.lwanga",
+          "match": "\\b(syscall)\\b"
+        },
+        {
+          "name": "keyword.other.enc.lwanga",
+          "match": "\\b(enc)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.lwanga",
+          "match": "\\b(u8|u16|u32|u64|ptr|register)\\b"
+        },
+        {
+          "name": "storage.modifier.lwanga",
+          "match": "\\b(mut)\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.lwanga",
+          "match": "\\b(true|false|null)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.lwanga",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.lwanga",
+              "match": "\\\\(x[0-9A-Fa-f]{2}|n|r|t|\\\\|0|\")"
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.lwanga",
+          "match": "\\b0x[0-9a-fA-F]+\\b"
+        },
+        {
+          "name": "constant.numeric.binary.lwanga",
+          "match": "\\b0b[01]+\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.lwanga",
+          "match": "\\b[0-9]+\\b"
+        }
+      ]
+    },
+    "functions": {
+      "patterns": [
+        {
+          "name": "entity.name.function.lwanga",
+          "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()"
+        },
+        {
+          "name": "entity.name.function.definition.lwanga",
+          "match": "(?<=fn\\s+)([a-zA-Z_][a-zA-Z0-9_]*)"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arithmetic.lwanga",
+          "match": "(\\+|\\-|\\*|\\/|%)"
+        },
+        {
+          "name": "keyword.operator.bitwise.lwanga",
+          "match": "(&|\\||\\^|~|<<|>>)"
+        },
+        {
+          "name": "keyword.operator.comparison.lwanga",
+          "match": "(==|!=|<|>|<=|>=)"
+        },
+        {
+          "name": "keyword.operator.logical.lwanga",
+          "match": "(&&|\\|\\||!)"
+        },
+        {
+          "name": "keyword.operator.assignment.lwanga",
+          "match": "(=)"
+        },
+        {
+          "name": "keyword.operator.arrow.lwanga",
+          "match": "(->)"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.terminator.lwanga",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.separator.lwanga",
+          "match": ","
+        },
+        {
+          "name": "punctuation.accessor.lwanga",
+          "match": "\\."
+        },
+        {
+          "name": "punctuation.section.braces.lwanga",
+          "match": "[{}]"
+        },
+        {
+          "name": "punctuation.section.brackets.lwanga",
+          "match": "[\\[\\]]"
+        },
+        {
+          "name": "punctuation.section.parens.lwanga",
+          "match": "[()]"
+        }
+      ]
+    }
+  }
+}
