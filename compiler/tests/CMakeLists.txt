@@ -70,4 +70,9 @@ add_executable(module_test module_test.cpp)
 target_link_libraries(module_test lwanga_modules lwanga_parser lwanga_lexer)
 add_test(NAME ModuleTest COMMAND module_test)
 
+# Backend test (Task 20)
+add_executable(backend_test backend_test.cpp)
+target_link_libraries(backend_test lwanga_backend lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
+add_test(NAME BackendTest COMMAND backend_test)
+
 # Tests will be added as we implement components

@@ -30,6 +30,10 @@ llvm_map_components_to_libnames(llvm_libs
     ExecutionEngine
     MCJIT
     native
+    AllTargetsInfos
+    AllTargetsDescs
+    AllTargetsAsmParsers
+    AllTargetsCodeGens
 )
 
 # Lexer library
@@ -63,6 +67,13 @@ add_library(lwanga_codegen
 target_include_directories(lwanga_codegen PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
 
+# Backend library
+add_library(lwanga_backend
+    src/backend/Backend.cpp
+)
+target_include_directories(lwanga_backend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(lwanga_backend ${llvm_libs})
+
 # Module loader library
 add_library(lwanga_modules
     src/driver/ModuleLoader.cpp
@@ -78,8 +89,8 @@ set(COMPILER_SOURCES
 # Create the compiler executable
 add_executable(lwangac ${COMPILER_SOURCES})
 
-# Link against LLVM, lexer, parser, types, codegen, and modules
-target_link_libraries(lwangac lwanga_lexer lwanga_parser lwanga_types lwanga_codegen lwanga_modules ${llvm_libs})
+# Link against LLVM, lexer, parser, types, codegen, backend, and modules
+target_link_libraries(lwangac lwanga_lexer lwanga_parser lwanga_types lwanga_codegen lwanga_backend lwanga_modules ${llvm_libs})
 
 # Compiler flags
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
