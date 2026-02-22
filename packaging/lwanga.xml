@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="text/x-lwanga">
+    <comment>Lwanga source code</comment>
+    <comment xml:lang="en">Lwanga source code</comment>
+    <glob pattern="*.lwanga"/>
+    <icon name="text-x-lwanga"/>
+    <sub-class-of type="text/plain"/>
+    <magic priority="50">
+      <match type="string" offset="0" value="#!/usr/bin/env lwangac"/>
+      <match type="string" offset="0" value="fn main()"/>
+    </magic>
+  </mime-type>
+</mime-info>

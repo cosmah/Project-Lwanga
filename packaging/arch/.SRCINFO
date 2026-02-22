@@ -1,0 +1,17 @@
+pkgbase = lwanga
+	pkgdesc = Security-focused systems programming language for shellcode and low-level development
+	pkgver = 1.0.0
+	pkgrel = 1
+	url = https://github.com/cosmah/Project-Lwanga
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	makedepends = cmake
+	makedepends = clang
+	makedepends = llvm
+	depends = llvm
+	depends = gcc-libs
+	source = lwanga-1.0.0.tar.gz::https://github.com/cosmah/Project-Lwanga/archive/v1.0.0.tar.gz
+	sha256sums = SKIP
+
+pkgname = lwanga

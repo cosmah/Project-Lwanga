@@ -1,0 +1,58 @@
+# Maintainer: Cosmc Technologies <cosmahke4@gmail.com>
+
+pkgname=lwanga
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Security-focused systems programming language for shellcode and low-level development"
+arch=('x86_64' 'aarch64')
+url="https://github.com/cosmah/Project-Lwanga"
+license=('MIT')
+depends=('llvm' 'gcc-libs')
+makedepends=('cmake' 'clang' 'llvm')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/cosmah/Project-Lwanga/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "$srcdir/Project-Lwanga-$pkgver/compiler"
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr
+    make -j$(nproc)
+}
+
+check() {
+    cd "$srcdir/Project-Lwanga-$pkgver/compiler/build"
+    ctest --output-on-failure
+}
+
+package() {
+    cd "$srcdir/Project-Lwanga-$pkgver/compiler/build"
+    
+    # Install binaries
+    install -Dm755 lwangac "$pkgdir/usr/bin/lwangac"
+    install -Dm755 formatter/lwangafmt "$pkgdir/usr/bin/lwangafmt"
+    install -Dm755 highlighter/lwangacat "$pkgdir/usr/bin/lwangacat"
+    
+    # Install documentation
+    install -Dm644 ../README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+    install -Dm644 ../docs/language-reference.md "$pkgdir/usr/share/doc/$pkgname/language-reference.md"
+    
+    # Install examples
+    mkdir -p "$pkgdir/usr/share/$pkgname/examples"
+    cp ../examples/*.lwanga "$pkgdir/usr/share/$pkgname/examples/"
+    
+    # Install file icons
+    for size in 16 32 64 128 256; do
+        install -Dm644 "../assets/icons/lwanga-file-${size}.png" \
+            "$pkgdir/usr/share/icons/hicolor/${size}x${size}/mimetypes/text-x-lwanga.png"
+    done
+    
+    # Install MIME type
+    install -Dm644 "../packaging/lwanga.xml" \
+        "$pkgdir/usr/share/mime/packages/lwanga.xml"
+    
+    # Install license
+    install -Dm644 ../LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

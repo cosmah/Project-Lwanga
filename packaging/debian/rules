@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --buildsystem=cmake
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr
+
+override_dh_auto_build:
+	dh_auto_build
+	# Build all components
+	cd obj-* && make lwangac lwangafmt lwangacat -j$(nproc)
+
+override_dh_auto_install:
+	dh_auto_install
+	# Install binaries
+	install -D -m 0755 obj-*/lwangac $(CURDIR)/debian/lwanga/usr/bin/lwangac
+	install -D -m 0755 obj-*/formatter/lwangafmt $(CURDIR)/debian/lwanga/usr/bin/lwangafmt
+	install -D -m 0755 obj-*/highlighter/lwangacat $(CURDIR)/debian/lwanga/usr/bin/lwangacat
+	# Install documentation
+	install -D -m 0644 README.md $(CURDIR)/debian/lwanga/usr/share/doc/lwanga/README.md
+	install -D -m 0644 docs/language-reference.md $(CURDIR)/debian/lwanga/usr/share/doc/lwanga/language-reference.md
+	# Install examples
+	mkdir -p $(CURDIR)/debian/lwanga/usr/share/lwanga/examples
+	cp -r examples/*.lwanga $(CURDIR)/debian/lwanga/usr/share/lwanga/examples/
+	# Install file icons
+	for size in 16 32 64 128 256; do \
+		install -D -m 0644 assets/icons/lwanga-file-$$size.png \
+			$(CURDIR)/debian/lwanga/usr/share/icons/hicolor/$${size}x$${size}/mimetypes/text-x-lwanga.png; \
+	done
+	# Install MIME type
+	install -D -m 0644 packaging/lwanga.xml $(CURDIR)/debian/lwanga/usr/share/mime/packages/lwanga.xml
+
+override_dh_auto_test:
+	# Run tests
+	cd obj-* && ctest --output-on-failure

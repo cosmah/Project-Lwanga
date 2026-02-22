@@ -1,0 +1,16 @@
+lwanga (1.0.0-1) unstable; urgency=medium
+
+  * Initial release
+  * Full compiler with LLVM backend
+  * Support for x86_64 and ARM64 architectures
+  * Inline assembly support (Intel and AT&T syntax)
+  * Direct syscall interface
+  * Position-independent code generation
+  * Encrypted string literals
+  * Code formatter (lwangafmt) with logo headers
+  * Syntax highlighter (lwangacat) with multiple themes
+  * Comprehensive test suite (20+ tests)
+  * Example programs included
+  * File type icons and MIME type registration
+
+ -- Cosmc Technologies <cosmahke4@gmail.com>  Sat, 22 Feb 2026 19:00:00 +0000

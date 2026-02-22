@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  lwanga:
+    build:
+      context: ../..
+      dockerfile: packaging/docker/Dockerfile
+    image: cosmctechnologies/lwanga:1.0.0
+    container_name: lwanga-compiler
+    volumes:
+      - ./workspace:/workspace
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    command: /bin/bash

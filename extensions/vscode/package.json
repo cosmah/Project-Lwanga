@@ -3,11 +3,11 @@
   "displayName": "Lwanga Language Support",
   "description": "Syntax highlighting, snippets, and language support for Lwanga - a security-focused systems programming language",
   "version": "1.0.0",
-  "publisher": "lwanga-lang",
+  "publisher": "cosmc-technologies",
   "icon": "icons/lwanga-file-128.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lwanga-lang/lwanga"
+    "url": "https://github.com/cosmah/Project-Lwanga.git"
   },
   "engines": {
     "vscode": "^1.80.0"

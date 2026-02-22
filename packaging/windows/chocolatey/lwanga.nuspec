@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>lwanga</id>
+    <version>1.0.0</version>
+    <packageSourceUrl>https://github.com/cosmah/Project-Lwanga</packageSourceUrl>
+    <owners>Cosmc Technologies</owners>
+    <title>Lwanga Programming Language</title>
+    <authors>Cosmc Technologies</authors>
+    <projectUrl>https://github.com/cosmah/Project-Lwanga</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/cosmah/Project-Lwanga/main/lwanga.png</iconUrl>
+    <copyright>2024-2026 Cosmc Technologies</copyright>
+    <licenseUrl>https://github.com/cosmah/Project-Lwanga/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/cosmah/Project-Lwanga</projectSourceUrl>
+    <docsUrl>https://github.com/cosmah/Project-Lwanga/tree/main/docs</docsUrl>
+    <bugTrackerUrl>https://github.com/cosmah/Project-Lwanga/issues</bugTrackerUrl>
+    <tags>lwanga compiler programming-language systems-programming security shellcode llvm</tags>
+    <summary>Security-focused systems programming language for low-level development</summary>
+    <description>
+Lwanga is a security-focused systems programming language designed for low-level development, shellcode creation, and penetration testing.
+
+## Features
+- Direct syscall support
+- Inline assembly (Intel and AT&T syntax)
+- Position-independent code generation
+- Encrypted string literals
+- Minimal runtime overhead
+- LLVM-based native code compilation
+
+## Tools Included
+- lwangac: Compiler
+- lwangafmt: Code formatter
+- lwangacat: Syntax highlighter
+
+## Use Cases
+- Security research
+- Penetration testing
+- Shellcode development
+- Low-level systems programming
+- Embedded systems
+    </description>
+    <releaseNotes>https://github.com/cosmah/Project-Lwanga/blob/main/CHANGELOG.md</releaseNotes>
+    <dependencies>
+      <dependency id="llvm" version="18.0.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>
