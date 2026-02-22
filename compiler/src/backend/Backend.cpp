@@ -1,4 +1,5 @@
 #include "Backend.h"
+#include "Obfuscator.h"
 #include <llvm/IR/Module.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Verifier.h>
@@ -24,7 +25,7 @@
 namespace lwanga {
 
 Backend::Backend(llvm::Module* mod, unsigned opt)
-    : module(mod), optLevel(opt), pic(false), debugInfo(false) {
+    : module(mod), optLevel(opt), pic(false), debugInfo(false), enableObfuscation(false) {
     
     // Use native target by default
     char* tripleStr = LLVMGetDefaultTargetTriple();
@@ -52,6 +53,23 @@ void Backend::setPositionIndependent(bool isPIC) {
 
 void Backend::setDebugInfo(bool debug) {
     debugInfo = debug;
+}
+
+void Backend::setObfuscate(bool obfuscate) {
+    enableObfuscation = obfuscate;
+}
+
+void Backend::obfuscate() {
+    if (!enableObfuscation) {
+        return;
+    }
+    
+    Obfuscator obfuscator(module);
+    obfuscator.obfuscate();
+    
+    if (obfuscator.hasErrors()) {
+        setError("Obfuscation failed: " + obfuscator.getError());
+    }
 }
 
 bool Backend::initializeTargetMachine() {

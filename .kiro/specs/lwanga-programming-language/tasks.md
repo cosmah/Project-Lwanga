@@ -513,24 +513,24 @@ The implementation prioritizes core functionality first, with security-specific 
     - Test multi-architecture support
     - _Requirements: 9.1-9.7_
 
-- [ ] 21. Implement obfuscation passes
-  - [ ] 21.1 Add control flow flattening
+- [x] 21. Implement obfuscation passes
+  - [x] 21.1 Add control flow flattening
     - Convert structured control flow to switch-based dispatch
     - Apply when --obfuscate flag is set
     - _Requirements: 24.1, 24.2_
   
-  - [ ] 21.2 Add opaque predicates
+  - [x] 21.2 Add opaque predicates
     - Insert always-true/false conditions
     - Make conditions hard to analyze statically
     - _Requirements: 24.3_
   
-  - [ ] 21.3 Add instruction substitution and reordering
+  - [x] 21.3 Add instruction substitution and reordering
     - Replace simple operations with complex equivalents
     - Randomize instruction ordering where possible
     - Preserve program semantics
     - _Requirements: 24.4, 24.5_
   
-  - [ ]* 21.4 Write unit tests for obfuscation
+  - [x]* 21.4 Write unit tests for obfuscation
     - Test control flow flattening
     - Test opaque predicates
     - Verify semantic preservation

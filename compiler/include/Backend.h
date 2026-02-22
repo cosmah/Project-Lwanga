@@ -21,9 +21,13 @@ public:
     // Set code generation options
     void setPositionIndependent(bool pic);
     void setDebugInfo(bool debug);
+    void setObfuscate(bool obfuscate);
     
     // Run optimization passes
     void optimize();
+    
+    // Run obfuscation passes
+    void obfuscate();
     
     // Generate object file
     bool generateObjectFile(const std::string& filename);
@@ -45,6 +49,7 @@ private:
     unsigned optLevel;
     bool pic;
     bool debugInfo;
+    bool enableObfuscation;
     std::string targetTriple;
     std::unique_ptr<llvm::TargetMachine> targetMachine;
     std::string errorMessage;

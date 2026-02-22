@@ -70,6 +70,7 @@ target_link_libraries(lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${l
 # Backend library
 add_library(lwanga_backend
     src/backend/Backend.cpp
+    src/backend/Obfuscator.cpp
 )
 target_include_directories(lwanga_backend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(lwanga_backend ${llvm_libs})

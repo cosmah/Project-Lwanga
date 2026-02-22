@@ -75,4 +75,9 @@ add_executable(backend_test backend_test.cpp)
 target_link_libraries(backend_test lwanga_backend lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
 add_test(NAME BackendTest COMMAND backend_test)
 
+# Obfuscation test (Task 21)
+add_executable(obfuscation_test obfuscation_test.cpp)
+target_link_libraries(obfuscation_test lwanga_backend lwanga_codegen lwanga_types lwanga_parser lwanga_lexer ${llvm_libs})
+add_test(NAME ObfuscationTest COMMAND obfuscation_test)
+
 # Tests will be added as we implement components
