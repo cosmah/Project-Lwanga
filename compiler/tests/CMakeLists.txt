@@ -93,3 +93,11 @@ target_link_libraries(cross_compilation_test lwanga_backend lwanga_codegen lwang
 add_test(NAME CrossCompilationTest COMMAND cross_compilation_test)
 
 # Tests will be added as we implement components
+
+# Determinism test (Task 26.4)
+add_executable(determinism_test determinism_test.cpp)
+add_test(NAME DeterminismTest COMMAND determinism_test WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+# End-to-end integration test (Task 26.5)
+add_executable(e2e_test e2e_test.cpp)
+add_test(NAME E2ETest COMMAND e2e_test WORKING_DIRECTORY ${CMAKE_BINARY_DIR})

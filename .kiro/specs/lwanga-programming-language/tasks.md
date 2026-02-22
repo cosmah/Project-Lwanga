@@ -640,12 +640,12 @@ The implementation prioritizes core functionality first, with security-specific 
     - Strip unnecessary sections
     - _Requirements: 13.4_
   
-  - [ ]* 26.4 Write property test for compilation correctness
+  - [x]* 26.4 Write property test for compilation correctness
     - **Property 4: Compilation determinism**
     - **Validates: Requirements 9.1**
     - For any valid program, compiling twice should produce identical output (with fixed seeds)
   
-  - [ ]* 26.5 Write end-to-end integration tests
+  - [x]* 26.5 Write end-to-end integration tests
     - Test complete compilation pipeline
     - Test generated executables run correctly
     - Test cross-compilation
