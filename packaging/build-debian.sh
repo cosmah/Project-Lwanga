@@ -10,6 +10,7 @@ echo "Building Lwanga Debian package v${VERSION}..."
 # Check if compiler is built
 if [ ! -f "${PROJECT_ROOT}/compiler/build/lwangac" ]; then
     echo "Error: Compiler not built. Building now..."
+    mkdir -p "${PROJECT_ROOT}/compiler/build"
     cd "${PROJECT_ROOT}/compiler/build"
     cmake .. -DCMAKE_BUILD_TYPE=Release
     make -j$(nproc)
@@ -37,14 +38,23 @@ cd "${BUILD_DIR}"
 echo "Building Debian package..."
 dpkg-buildpackage -us -uc -b
 
+# Determine architecture
+ARCH=$(dpkg --print-architecture)
+PKG="lwanga_${VERSION}-1_${ARCH}.deb"
+
 # Move package to project root
 cd "${PROJECT_ROOT}"
-mv lwanga_${VERSION}-1_amd64.deb .
-rm -rf "${BUILD_DIR}" lwanga_${VERSION}*
+mv "${PKG}" .
+
+# Clean up build artifacts (but not the .deb we just moved)
+rm -rf "${BUILD_DIR}"
+rm -f lwanga_${VERSION}-1_${ARCH}.buildinfo
+rm -f lwanga_${VERSION}-1_${ARCH}.changes
+rm -f lwanga-dbgsym_${VERSION}-1_${ARCH}.ddeb
 
 echo ""
-echo "✓ Debian package created: lwanga_${VERSION}-1_amd64.deb"
+echo "✓ Debian package created: ${PKG}"
 echo ""
 echo "To install:"
-echo "  sudo dpkg -i lwanga_${VERSION}-1_amd64.deb"
+echo "  sudo dpkg -i ${PKG}"
 echo "  sudo apt-get install -f"

@@ -13,7 +13,9 @@ override_dh_auto_build:
 	cd compiler/build && make -j$(nproc)
 
 override_dh_auto_test:
-	cd compiler/build && ctest --output-on-failure || true
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	cd compiler/build && ctest --output-on-failure
+endif
 
 override_dh_auto_install:
 	# Install binaries
