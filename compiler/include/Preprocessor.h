@@ -46,7 +46,7 @@ private:
     bool processDirective(std::string& output);
     bool evaluateCondition(const std::string& condition);
     void skipUntilEndif(int depth = 1);
-    void skipUntilElseOrEndif(int depth = 1);
+    bool skipUntilElseOrEndif(int depth = 1);
     
     // Initialize platform-specific symbols
     void initPlatformSymbols();

@@ -119,7 +119,7 @@ void Preprocessor::skipUntilEndif(int depth) {
     }
 }
 
-void Preprocessor::skipUntilElseOrEndif(int depth) {
+bool Preprocessor::skipUntilElseOrEndif(int depth) {
     while (currentChar() != '\0') {
         if (currentChar() == '#') {
             advance();
@@ -132,19 +132,20 @@ void Preprocessor::skipUntilElseOrEndif(int depth) {
                 // Skip to end of line
                 while (currentChar() != '\n' && currentChar() != '\0') advance();
                 if (currentChar() == '\n') advance();
-                return;
+                return true;
             } else if (directive == "endif") {
                 depth--;
                 if (depth == 0) {
                     // Skip to end of line
                     while (currentChar() != '\n' && currentChar() != '\0') advance();
                     if (currentChar() == '\n') advance();
-                    return;
+                    return false;
                 }
             }
         }
         advance();
     }
+    return false;
 }
 
 bool Preprocessor::processDirective(std::string& output) {
@@ -165,7 +166,7 @@ bool Preprocessor::processDirective(std::string& output) {
         if (currentChar() == '\n') advance();
         
         if (!evaluateCondition(condition)) {
-            skipUntilElseOrEndif(1);
+            if (!skipUntilElseOrEndif(1)) directiveStack.pop();
         }
         return true;
     } else if (directive == "ifdef") {
@@ -176,7 +177,7 @@ bool Preprocessor::processDirective(std::string& output) {
         if (currentChar() == '\n') advance();
         
         if (!isDefined(symbol)) {
-            skipUntilElseOrEndif(1);
+            if (!skipUntilElseOrEndif(1)) directiveStack.pop();
         }
         return true;
     } else if (directive == "ifndef") {
@@ -187,7 +188,7 @@ bool Preprocessor::processDirective(std::string& output) {
         if (currentChar() == '\n') advance();
         
         if (isDefined(symbol)) {
-            skipUntilElseOrEndif(1);
+            if (!skipUntilElseOrEndif(1)) directiveStack.pop();
         }
         return true;
     } else if (directive == "else") {
@@ -270,7 +271,7 @@ std::string Preprocessor::process() {
         if (std::isalpha(currentChar()) || currentChar() == '_') {
             std::string ident = readIdentifier();
             auto it = symbols.find(ident);
-            if (it != symbols.end() && !it->second.empty()) {
+            if (it != symbols.end()) {
                 // Perform substitution
                 output += it->second;
             } else {
