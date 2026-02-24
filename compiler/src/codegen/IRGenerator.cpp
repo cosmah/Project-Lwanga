@@ -838,7 +838,7 @@ void IRGenerator::generateAsm(AsmStmt* stmt) {
     }
     
     // Determine return type based on direct outputs
-    llvm::Type* returnType;
+    llvm::Type* returnType = llvm::Type::getVoidTy(*context);
     std::vector<llvm::Type*> directOutputTypes;
     for (size_t i = 0; i < stmt->outputs.size(); i++) {
         if (stmt->outputs[i].constraint.find("*m") == std::string::npos) {

@@ -20,12 +20,12 @@ sha256sum lwanga_1.0.2-1_*.deb > lwanga_1.0.2-1_amd64.deb.sha256
 
 2. Fill in:
    - **Tag**: `v1.0.2`
-   - **Release title**: `Lwanga v1.0.2 - Initial Release`
+   - **Release title**: `Lwanga v1.0.2 - Hardening & Preprocessor Update`
    - **Description**: 
    ````markdown
-   # Lwanga v1.0.2 - Initial Release
+   # Lwanga v1.0.2 - Hardening & Preprocessor Update
    
-   First stable release of Lwanga programming language.
+   Point release with compiler hardening and preprocessor improvements.
    
    ## Installation
    

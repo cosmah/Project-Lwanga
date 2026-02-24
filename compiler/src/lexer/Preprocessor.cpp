@@ -196,6 +196,7 @@ bool Preprocessor::processDirective(std::string& output) {
             throw std::runtime_error("Line " + std::to_string(line) + ": #else without #if");
         }
         // If we reached here, the #if block was active, so we must skip the #else block
+        directiveStack.pop(); // Pop the matching #if entry
         skipUntilEndif(1);
         return true;
     } else if (directive == "endif") {
