@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
     
     // Parse command line options
     cl::AddExtraVersionPrinter([](raw_ostream &OS) {
-        OS << "Lwanga Compiler v1.0.0\n";
+        OS << "Lwanga Compiler v1.0.2\n";
         OS << "Security-focused systems programming language\n";
         OS << "Built with LLVM " << LLVM_VERSION_STRING << "\n";
     });
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
     auto startTime = std::chrono::high_resolution_clock::now();
     
     if (Verbose) {
-        std::cout << lwanga::Color::BOLD << "Lwanga Compiler v1.0.0\n" << lwanga::Color::RESET;
+        std::cout << lwanga::Color::BOLD << "Lwanga Compiler v1.0.2\n" << lwanga::Color::RESET;
         std::cout << lwanga::Color::DIM << "Input file: " << lwanga::Color::RESET << InputFilename << "\n";
         std::cout << lwanga::Color::DIM << "Output file: " << lwanga::Color::RESET << OutputFilename << "\n";
         std::cout << lwanga::Color::DIM << "Optimization level: " << lwanga::Color::RESET << "-O" << OptLevel << "\n";

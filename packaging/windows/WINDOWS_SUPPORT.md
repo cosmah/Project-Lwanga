@@ -37,7 +37,7 @@ Full Windows support has been added to Lwanga with professional packaging and in
 - Uninstaller included
 - Registry integration
 
-**Output**: `lwanga-1.0.0-windows-x64-installer.exe`
+**Output**: `lwanga-1.0.2-windows-x64-installer.exe`
 
 ### 3. Chocolatey Package
 **Location**: `packaging/windows/chocolatey/`
@@ -83,7 +83,7 @@ choco uninstall lwanga
 ### Method 1: Installer (Recommended)
 ```powershell
 # Download installer
-Invoke-WebRequest -Uri "https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.0/lwanga-1.0.0-windows-x64-installer.exe" -OutFile "lwanga-installer.exe"
+Invoke-WebRequest -Uri "https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga-1.0.2-windows-x64-installer.exe" -OutFile "lwanga-installer.exe"
 
 # Run installer
 .\lwanga-installer.exe

@@ -54,7 +54,7 @@ cd extensions/vscode
 npm install
 npm run compile
 npm run package
-code --install-extension lwanga-1.0.0.vsix
+code --install-extension lwanga-1.0.2.vsix
 ```
 
 **Publishing**:

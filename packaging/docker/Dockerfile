@@ -6,7 +6,7 @@ FROM ubuntu:24.04
 
 LABEL maintainer="Cosmc Technologies <cosmahke4@gmail.com>"
 LABEL description="Lwanga - Security-focused systems programming language"
-LABEL version="1.0.0"
+LABEL version="1.0.2"
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \

@@ -1,0 +1,35 @@
+Format: 1.8
+Date: Tue, 24 Feb 2026 22:30:00 +0000
+Source: lwanga
+Binary: lwanga
+Built-For-Profiles: noudeb
+Architecture: amd64
+Version: 1.0.2-1
+Distribution: unstable
+Urgency: medium
+Maintainer: Cosmc Technologies <cosmahke4@gmail.com>
+Changed-By: Cosmc Technologies <cosmahke4@gmail.com>
+Description:
+ lwanga     - Security-focused systems programming language
+Changes:
+ lwanga (1.0.2-1) unstable; urgency=medium
+ .
+   * Compiler hardening and stability improvements
+   * Support for *Type pointer syntax (e.g., let p: *u64)
+   * Enhanced preprocessor with macro substitution (#define VAL 100)
+   * Fixed array indexing for stack arrays and opaque pointers
+   * Improved parser robustness and error recovery
+   * Manual instruction demotion for LLVM 18+ obfuscation compatibility
+   * Fixed missing linker dependencies in Debian package
+Checksums-Sha1:
+ f8acc17e4f0659b88c099b0efcc002417ee06df3 6830652 lwanga-dbgsym_1.0.2-1_amd64.ddeb
+ 22e1cb4d15b4dad3fa04cb4a78a256273c4b6a08 8904 lwanga_1.0.2-1_amd64.buildinfo
+ 614dcd30335ad6751f81d59988c9384ebd8923e2 20387402 lwanga_1.0.2-1_amd64.deb
+Checksums-Sha256:
+ d61b0bd488c225c4b63db633e23a42e421c35d9918b4fb527a174dcdfef24c02 6830652 lwanga-dbgsym_1.0.2-1_amd64.ddeb
+ 34d78c478e37692655e66dc28df98009d641f53dacb079a4ae89c8c1b5489309 8904 lwanga_1.0.2-1_amd64.buildinfo
+ 8a40de5e91e4372a865ed390ac60e46091a9b1136d0fe4f69d6cb982175808d1 20387402 lwanga_1.0.2-1_amd64.deb
+Files:
+ 3915ab194f1d4a811b962259fc795743 6830652 debug optional lwanga-dbgsym_1.0.2-1_amd64.ddeb
+ ad2376bcb2d60eff7bb06709d48d2012 8904 devel optional lwanga_1.0.2-1_amd64.buildinfo
+ 93f97b628d2367feb7453de17478758c 20387402 devel optional lwanga_1.0.2-1_amd64.deb

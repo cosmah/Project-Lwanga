@@ -10,7 +10,7 @@ cd extensions/vscode
 npm install
 npm run compile
 npm run package
-code --install-extension lwanga-1.0.0.vsix
+code --install-extension lwanga-1.0.2.vsix
 ```
 
 ### From Marketplace (when published)
@@ -20,7 +20,7 @@ code --install-extension lwanga-1.0.0.vsix
 4. Click Install
 
 ### Manual Installation
-1. Download `lwanga-1.0.0.vsix`
+1. Download `lwanga-1.0.2.vsix`
 2. Open VS Code
 3. Go to Extensions
 4. Click "..." menu → "Install from VSIX"

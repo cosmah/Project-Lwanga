@@ -108,7 +108,7 @@ The icons are always generated from `lwanga.png` in the project root:
 ## Testing
 
 ### VS Code
-1. Install the extension: `code --install-extension ../../extensions/vscode/lwanga-1.0.0.vsix`
+1. Install the extension: `code --install-extension ../../extensions/vscode/lwanga-1.0.2.vsix`
 2. Open a `.lwanga` file
 3. Check that the icon appears in the tab and file explorer
 

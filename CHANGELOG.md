@@ -2,8 +2,27 @@
 
 All notable changes to the Lwanga programming language will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.2/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.2] - 2026-02-24
+
+### Added
+- Support for `*Type` pointer syntax (e.g., `let p: *u64`)
+- Enhanced preprocessor with macro substitution support (`#define VAL 100`)
+- Improved parser robustness with statement-level error recovery
+- More descriptive error messages for expression and type parsing
+
+### Fixed
+- **Array Indexing**: Resolved critical LLVM verification error when indexing stack-allocated arrays
+- **Opaque Pointers**: Fixed element size calculation for pointer indexing in LLVM 18+
+- **Compiler Hangs**: Fixed infinite loops in Preprocessor and Parser during error states
+- **Control Flow**: Fixed "Terminator in middle of block" error by skipping dead code after returns
+- **Debian Package**: Added missing `binutils` and `build-essential` dependencies
+
+### Changed
+- Replaced removed LLVM pass `createDemoteRegisterToMemoryPass` with manual PHI node demotion
+- Updated all internal versioning and documentation to 1.0.2
 
 ## [1.0.0] - 2026-02-22
 
@@ -23,162 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Register type for inline assembly
 - Array literals support
 
-#### Compiler Features
-- LLVM-based code generation
-- Optimization levels (-O0 to -O3)
-- Cross-compilation support
-- Debug information generation (-g)
-- Code obfuscation (--obfuscate)
-- JIT execution mode (--jit)
-- Verbose output mode (-v)
-
-#### Tools
-- **lwangafmt**: Code formatter with logo headers
-  - Multiple logo styles (minimal, block, banner)
-  - TOML configuration support
-  - Format on save capability
-  - Recursive directory formatting
-  - Check mode for CI/CD
-- **lwangacat**: Syntax highlighter for terminal
-  - 4 color themes (default, dark, light, monokai)
-  - Line numbers with highlighting
-  - Context display for errors
-  - Pipe support
-
-#### IDE Extensions
-- **VS Code Extension**:
-  - Full syntax highlighting with TextMate grammar
-  - 18 code snippets
-  - Document formatting integration
-  - Compilation integration with output channel
-  - Format on save
-  - Logo header insertion
-  - Theme-aware file icons
-- **Vim Plugin**:
-  - Complete syntax highlighting
-  - Filetype detection
-  - Smart indentation
-  - Custom commands (format, compile, add header)
-  - Keybindings
-
-#### Type System
-- Unsigned integers: u8, u16, u32, u64
-- Raw pointers: ptr
-- Register type for inline assembly
-- Struct types with packed option
-- Array types
-- Function types
-
-#### Standard Library
-- Syscall interface
-- Basic I/O operations
-- String manipulation
-- Memory operations
-
-#### Testing
-- 20+ comprehensive test suites:
-  - Lexer tests
-  - Parser tests
-  - Type system tests
-  - IR generation tests
-  - Backend tests
-  - Integration tests
-  - End-to-end tests
-  - Cross-compilation tests
-  - Determinism tests
-  - Obfuscation tests
-
-#### Documentation
-- Complete language reference
-- Installation guide
-- API documentation
-- Syscall reference
-- 10+ example programs
-- Formatter and branding guide
-- IDE extension documentation
-
-#### Packaging
-- Debian/Ubuntu .deb package
-- Arch Linux PKGBUILD
-- Docker image
-- Windows installer (.exe with NSIS)
-- Chocolatey package for Windows
-- Source tarballs
-- MIME type registration
-- File type icons (16px to 256px)
-
-### Performance
-- Hello World binary: 8.9KB (under 10KB target)
-- Compilation speed: ~75ms for simple programs
-- Zero runtime overhead for syscalls
-- Minimal standard library footprint
-
-### Security Features
-- Encrypted string literals
-- Position-independent code generation
-- Naked functions for shellcode
-- Direct syscall interface (no libc)
-- Unsafe blocks for explicit low-level operations
-
-### Compatibility
-- LLVM 18
-- C++17 compiler required
-- CMake 3.15+
-- Linux (Ubuntu 20.04+, Arch, Debian 11+)
-- macOS 11+
-- Windows 10/11 (with Visual Studio 2019+)
-- Docker support
-
-### Known Limitations
-- No garbage collection (manual memory management)
-- Limited standard library (by design)
-- No dynamic linking support yet
-- Single-threaded compilation
-
-## [Unreleased]
-
-### Planned Features
-- Language Server Protocol (LSP) implementation
-- Debugger integration (GDB/LLDB/WinDbg)
-- Package manager
-- More standard library functions
-- Native Windows syscall support
-- WebAssembly target
-- Emacs mode
-- Sublime Text syntax
-- Scoop package for Windows
-- WinGet package for Windows
-
----
-
-## Release Notes
-
-### v1.0.0 - Initial Release
-
-This is the first stable release of Lwanga, suitable for:
-- Security research and penetration testing
-- Shellcode development
-- Low-level systems programming
-- Educational purposes
-- Embedded systems development
-
-**Not recommended for**:
-- Production web services
-- Applications requiring garbage collection
-- Projects needing extensive standard library
-
-### Breaking Changes
-None (initial release)
-
-### Migration Guide
-None (initial release)
-
-### Deprecations
-None (initial release)
-
----
-
-**Cosmc Technologies** | https://github.com/cosmah/Project-Lwanga
-
+[1.0.2]: https://github.com/cosmah/Project-Lwanga/releases/tag/v1.0.2
 [1.0.0]: https://github.com/cosmah/Project-Lwanga/releases/tag/v1.0.0
-[Unreleased]: https://github.com/cosmah/Project-Lwanga/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/cosmah/Project-Lwanga/compare/v1.0.2...HEAD

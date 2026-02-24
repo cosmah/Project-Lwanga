@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(LwangaCompiler VERSION 1.0.0 LANGUAGES CXX)
+project(LwangaCompiler VERSION 1.0.2 LANGUAGES CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)

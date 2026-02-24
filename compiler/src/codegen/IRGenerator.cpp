@@ -1964,7 +1964,7 @@ void IRGenerator::initializeDebugInfo() {
     compileUnit = debugBuilder->createCompileUnit(
         llvm::dwarf::DW_LANG_C,  // Use C language tag (closest to Lwanga)
         debugFile,
-        "Lwanga Compiler v1.0.0",  // Producer
+        "Lwanga Compiler v1.0.2",  // Producer
         false,  // isOptimized (will be set by backend)
         "",     // Flags
         0       // Runtime version

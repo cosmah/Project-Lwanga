@@ -49,7 +49,7 @@ extensions/vscode/
 - ✅ Name: `lwanga`
 - ✅ Display Name: `Lwanga Language Support`
 - ✅ Description: Complete and descriptive
-- ✅ Version: `1.0.0`
+- ✅ Version: `1.0.2`
 - ✅ Publisher: `lwanga-lang`
 - ✅ Icon: `icons/lwanga-file-128.png` (present)
 - ✅ Repository: GitHub URL configured
@@ -132,7 +132,7 @@ extensions/vscode/
 
 ### ✅ Documentation
 - ✅ README.md - Complete with features, installation, configuration, examples
-- ✅ CHANGELOG.md - Version 1.0.0 with all features listed
+- ✅ CHANGELOG.md - Version 1.0.2 with all features listed
 - ✅ No broken links
 - ✅ Clear instructions
 
@@ -402,7 +402,7 @@ Both extensions are fully functional, well-documented, and ready for public rele
    npm install
    npm run compile
    npm run package
-   # Creates lwanga-1.0.0.vsix
+   # Creates lwanga-1.0.2.vsix
    
    # Then publish (requires account):
    vsce publish
@@ -411,7 +411,7 @@ Both extensions are fully functional, well-documented, and ready for public rele
 2. **Vim Plugin**:
    - Create GitHub repository
    - Push files from `extensions/vim/`
-   - Create release v1.0.0
+   - Create release v1.0.2
    - Update vim-plug/Vundle indexes
 
 3. **System Integration** (optional):
