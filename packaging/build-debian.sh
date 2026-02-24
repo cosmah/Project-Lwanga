@@ -3,7 +3,7 @@
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="1.0.0"
+VERSION="1.0.2"
 
 echo "Building Lwanga Debian package v${VERSION}..."
 
@@ -13,7 +13,7 @@ if [ ! -f "${PROJECT_ROOT}/compiler/build/lwangac" ]; then
     mkdir -p "${PROJECT_ROOT}/compiler/build"
     cd "${PROJECT_ROOT}/compiler/build"
     cmake .. -DCMAKE_BUILD_TYPE=Release
-    make -j$(nproc)
+    make -j"$(nproc)"
 fi
 
 # Create build directory
@@ -42,11 +42,9 @@ dpkg-buildpackage -us -uc -b
 ARCH=$(dpkg --print-architecture)
 PKG="lwanga_${VERSION}-1_${ARCH}.deb"
 
-# Move package to project root
 cd "${PROJECT_ROOT}"
-mv "${PKG}" .
 
-# Clean up build artifacts (but not the .deb we just moved)
+# Clean up build artifacts (but not the .deb)
 rm -rf "${BUILD_DIR}"
 rm -f lwanga_${VERSION}-1_${ARCH}.buildinfo
 rm -f lwanga_${VERSION}-1_${ARCH}.changes

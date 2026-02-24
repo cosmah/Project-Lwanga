@@ -55,7 +55,7 @@ docker run -it --rm cosmctechnologies/lwanga:latest
 #### Installer (Recommended)
 ```powershell
 # Download and run installer
-Invoke-WebRequest -Uri "https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.0/lwanga-1.0.0-windows-x64-installer.exe" -OutFile "lwanga-installer.exe"
+Invoke-WebRequest -Uri "https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga-1.0.2-windows-x64-installer.exe" -OutFile "lwanga-installer.exe"
 .\lwanga-installer.exe
 ```
 
@@ -140,7 +140,7 @@ makensis installer.nsi
 
 #### Install
 ```powershell
-.\lwanga-1.0.0-windows-x64-installer.exe
+.\lwanga-1.0.2-windows-x64-installer.exe
 ```
 
 ### Chocolatey Package
@@ -166,7 +166,7 @@ dpkg-buildpackage -us -uc -b
 
 #### Install Package
 ```bash
-sudo dpkg -i ../lwanga_1.0.0-1_amd64.deb
+sudo dpkg -i ../lwanga_1.0.2-1_amd64.deb
 sudo apt-get install -f  # Fix dependencies if needed
 ```
 
@@ -221,7 +221,7 @@ cd extensions/vscode
 npm install
 npm run compile
 npx @vscode/vsce package
-code --install-extension lwanga-1.0.0.vsix
+code --install-extension lwanga-1.0.2.vsix
 ```
 
 #### From Marketplace (when published)

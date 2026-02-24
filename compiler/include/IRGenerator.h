@@ -17,7 +17,7 @@ namespace lwanga {
 // IR generation for Lwanga AST
 class IRGenerator {
 public:
-    IRGenerator(const std::string& moduleName, const std::string& sourceFile = "");
+    IRGenerator(const std::string& moduleName, const std::string& sourceFile = "", const std::string& targetTriple = "");
     ~IRGenerator();
     
     // Enable/disable debug info generation
@@ -46,6 +46,9 @@ private:
     
     // Track allocated types for variables (needed for LLVM 18 opaque pointers)
     std::unordered_map<std::string, llvm::Type*> namedTypes;
+    
+    // Track pointee types for pointer variables (needed for indexing opaque pointers)
+    std::unordered_map<std::string, llvm::Type*> pointeeTypes;
     
     // Track constants (map name to constant value)
     std::unordered_map<std::string, llvm::Constant*> constants;

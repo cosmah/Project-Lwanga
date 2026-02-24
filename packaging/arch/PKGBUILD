@@ -1,7 +1,7 @@
 # Maintainer: Cosmc Technologies <cosmahke4@gmail.com>
 
 pkgname=lwanga
-pkgver=1.0.0
+pkgver=1.0.2
 pkgrel=1
 pkgdesc="Security-focused systems programming language for shellcode and low-level development"
 arch=('x86_64' 'aarch64')
@@ -10,7 +10,7 @@ license=('MIT')
 depends=('llvm' 'gcc-libs')
 makedepends=('cmake' 'clang' 'llvm')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/cosmah/Project-Lwanga/archive/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('5a363d346134c0c629cd84ca83a3228650860062aa4b9a7b023602fefade28ee')
 
 build() {
     cd "$srcdir/Project-Lwanga-$pkgver/compiler"

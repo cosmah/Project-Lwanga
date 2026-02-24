@@ -48,6 +48,9 @@ private:
     void collectStruct(StructAST* structDef);
     void collectConstant(ConstantAST* constant);
     
+    // Circular struct detection
+    bool checkCircularStruct(const std::string& name, std::vector<std::string>& path);
+    
     // Second pass: type check everything
     void checkFunction(FunctionAST* func);
     void checkStatement(StmtAST* stmt);

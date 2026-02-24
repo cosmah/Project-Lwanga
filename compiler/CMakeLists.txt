@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(LwangaCompiler VERSION 0.1.0 LANGUAGES CXX)
+project(LwangaCompiler VERSION 1.0.2 LANGUAGES CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -17,8 +17,15 @@ include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
+# Generate Version.h
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/Version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/Version.h
+)
+
 # Add project include directory
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
 # LLVM components we need
 llvm_map_components_to_libnames(llvm_libs

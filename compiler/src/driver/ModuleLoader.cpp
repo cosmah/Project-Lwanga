@@ -97,25 +97,40 @@ std::unique_ptr<ProgramAST> ModuleLoader::loadSingleModule(const std::string& fi
     }
     
     // Mark as fully loaded
-    loadingModules.erase(filePath);
     loadedModules.insert(filePath);
+    loadingModules.erase(filePath);
     
     return program;
 }
 
 std::string ModuleLoader::resolveModulePath(const std::string& importPath,
                                             const std::string& importingFile) {
-    // Get the directory of the importing file
+    // 1. Try relative to the importing file's directory
     std::filesystem::path importingPath(importingFile);
     std::filesystem::path importingDir = importingPath.parent_path();
-    
-    // Resolve the import path relative to the importing file's directory
     std::filesystem::path resolvedPath = importingDir / importPath;
     
-    // Normalize the path (resolve .., ., etc.)
-    resolvedPath = std::filesystem::absolute(resolvedPath);
+    if (std::filesystem::exists(resolvedPath)) {
+        return std::filesystem::absolute(resolvedPath).string();
+    }
     
-    return resolvedPath.string();
+    // 2. Try LWANGA_PATH environment variable
+    const char* envPath = std::getenv("LWANGA_PATH");
+    if (envPath) {
+        std::string pathStr(envPath);
+        std::stringstream ss(pathStr);
+        std::string segment;
+        
+        while (std::getline(ss, segment, ':')) {
+            std::filesystem::path searchPath = std::filesystem::path(segment) / importPath;
+            if (std::filesystem::exists(searchPath)) {
+                return std::filesystem::absolute(searchPath).string();
+            }
+        }
+    }
+    
+    // 3. Fallback to the original relative path even if it doesn't exist (for late error reporting)
+    return std::filesystem::absolute(importingDir / importPath).string();
 }
 
 std::unique_ptr<ProgramAST> ModuleLoader::mergeModules(

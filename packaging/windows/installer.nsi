@@ -3,7 +3,7 @@
 ; Creates Windows installer for Lwanga compiler
 
 !define PRODUCT_NAME "Lwanga"
-!define PRODUCT_VERSION "1.0.0"
+!define PRODUCT_VERSION "1.0.2"
 !define PRODUCT_PUBLISHER "Cosmc Technologies"
 !define PRODUCT_WEB_SITE "https://github.com/cosmah/Project-Lwanga"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"

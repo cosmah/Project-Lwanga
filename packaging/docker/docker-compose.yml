@@ -5,7 +5,7 @@ services:
     build:
       context: ../..
       dockerfile: packaging/docker/Dockerfile
-    image: cosmctechnologies/lwanga:1.0.0
+    image: cosmctechnologies/lwanga:1.0.2
     container_name: lwanga-compiler
     volumes:
       - ./workspace:/workspace

@@ -10,7 +10,7 @@ Vcs-Browser: https://github.com/cosmah/Project-Lwanga
 
 Package: lwanga
 Architecture: amd64 arm64
-Depends: ${shlibs:Depends}, ${misc:Depends}, llvm-18
+Depends: ${shlibs:Depends}, ${misc:Depends}, llvm-18, binutils, build-essential
 Description: Security-focused systems programming language
  Lwanga is a low-level systems programming language designed for
  security research, penetration testing, and shellcode development.

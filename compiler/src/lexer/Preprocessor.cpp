@@ -35,8 +35,8 @@ void Preprocessor::initPlatformSymbols() {
     }
 }
 
-void Preprocessor::define(const std::string& symbol) {
-    symbols[symbol] = true;
+void Preprocessor::define(const std::string& symbol, const std::string& value) {
+    symbols[symbol] = value;
 }
 
 bool Preprocessor::isDefined(const std::string& symbol) const {
@@ -103,18 +103,14 @@ void Preprocessor::skipUntilEndif(int depth) {
             skipWhitespace();
             std::string directive = readIdentifier();
             
-            if (directive == "if") {
+            if (directive == "if" || directive == "ifdef" || directive == "ifndef") {
                 depth++;
             } else if (directive == "endif") {
                 depth--;
                 if (depth == 0) {
-                    // Skip to end of line
-                    while (currentChar() != '\n' && currentChar() != '\0') {
-                        advance();
-                    }
-                    if (currentChar() == '\n') {
-                        advance();
-                    }
+                    // Skip rest of line
+                    while (currentChar() != '\n' && currentChar() != '\0') advance();
+                    if (currentChar() == '\n') advance();
                     return;
                 }
             }
@@ -123,63 +119,33 @@ void Preprocessor::skipUntilEndif(int depth) {
     }
 }
 
-void Preprocessor::skipUntilElseOrEndif(int depth) {
+bool Preprocessor::skipUntilElseOrEndif(int depth) {
     while (currentChar() != '\0') {
         if (currentChar() == '#') {
             advance();
             skipWhitespace();
             std::string directive = readIdentifier();
             
-            if (directive == "if") {
+            if (directive == "if" || directive == "ifdef" || directive == "ifndef") {
                 depth++;
-                // Skip rest of line
-                while (currentChar() != '\n' && currentChar() != '\0') {
-                    advance();
-                }
-                if (currentChar() == '\n') {
-                    advance();
-                }
             } else if (directive == "else" && depth == 1) {
                 // Skip to end of line
-                while (currentChar() != '\n' && currentChar() != '\0') {
-                    advance();
-                }
-                if (currentChar() == '\n') {
-                    advance();
-                }
-                return;
+                while (currentChar() != '\n' && currentChar() != '\0') advance();
+                if (currentChar() == '\n') advance();
+                return true;
             } else if (directive == "endif") {
                 depth--;
                 if (depth == 0) {
                     // Skip to end of line
-                    while (currentChar() != '\n' && currentChar() != '\0') {
-                        advance();
-                    }
-                    if (currentChar() == '\n') {
-                        advance();
-                    }
-                    return;
-                }
-                // Skip rest of line
-                while (currentChar() != '\n' && currentChar() != '\0') {
-                    advance();
-                }
-                if (currentChar() == '\n') {
-                    advance();
-                }
-            } else {
-                // Unknown directive, skip rest of line
-                while (currentChar() != '\n' && currentChar() != '\0') {
-                    advance();
-                }
-                if (currentChar() == '\n') {
-                    advance();
+                    while (currentChar() != '\n' && currentChar() != '\0') advance();
+                    if (currentChar() == '\n') advance();
+                    return false;
                 }
             }
-        } else {
-            advance();
         }
+        advance();
     }
+    return false;
 }
 
 bool Preprocessor::processDirective(std::string& output) {
@@ -190,54 +156,84 @@ bool Preprocessor::processDirective(std::string& output) {
     std::string directive = readIdentifier();
     
     if (directive == "if") {
+        directiveStack.push({directive, line});
         skipWhitespace();
-        // Read condition until end of line
         std::string condition;
         while (currentChar() != '\n' && currentChar() != '\0') {
             condition += currentChar();
             advance();
         }
-        if (currentChar() == '\n') {
-            advance();
-        }
+        if (currentChar() == '\n') advance();
         
-        bool conditionResult = evaluateCondition(condition);
-        
-        if (conditionResult) {
-            // Include this block, continue processing
-            return true;
-        } else {
-            // Skip until #else or #endif
-            skipUntilElseOrEndif(1);
-            return true;
+        if (!evaluateCondition(condition)) {
+            if (!skipUntilElseOrEndif(1)) directiveStack.pop();
         }
+        return true;
+    } else if (directive == "ifdef") {
+        directiveStack.push({directive, line});
+        skipWhitespace();
+        std::string symbol = readIdentifier();
+        while (currentChar() != '\n' && currentChar() != '\0') advance();
+        if (currentChar() == '\n') advance();
+        
+        if (!isDefined(symbol)) {
+            if (!skipUntilElseOrEndif(1)) directiveStack.pop();
+        }
+        return true;
+    } else if (directive == "ifndef") {
+        directiveStack.push({directive, line});
+        skipWhitespace();
+        std::string symbol = readIdentifier();
+        while (currentChar() != '\n' && currentChar() != '\0') advance();
+        if (currentChar() == '\n') advance();
+        
+        if (isDefined(symbol)) {
+            if (!skipUntilElseOrEndif(1)) directiveStack.pop();
+        }
+        return true;
     } else if (directive == "else") {
-        // We're in an #else block, which means the #if was true
-        // Skip until #endif
+        if (directiveStack.empty() || (directiveStack.top().type != "if" && 
+            directiveStack.top().type != "ifdef" && directiveStack.top().type != "ifndef")) {
+            throw std::runtime_error("Line " + std::to_string(line) + ": #else without #if");
+        }
+        // If we reached here, the #if block was active, so we must skip the #else block
+        directiveStack.pop(); // Pop the matching #if entry
         skipUntilEndif(1);
         return true;
     } else if (directive == "endif") {
-        // Just skip to end of line
-        while (currentChar() != '\n' && currentChar() != '\0') {
-            advance();
+        if (directiveStack.empty()) {
+            throw std::runtime_error("Line " + std::to_string(line) + ": #endif without #if");
         }
-        if (currentChar() == '\n') {
-            advance();
-        }
+        directiveStack.pop();
+        while (currentChar() != '\n' && currentChar() != '\0') advance();
+        if (currentChar() == '\n') advance();
         return true;
     } else if (directive == "define") {
         skipWhitespace();
         std::string symbol = readIdentifier();
+        std::string value;
         if (!symbol.empty()) {
-            define(symbol);
+            skipWhitespace();
+            while (currentChar() != '\n' && currentChar() != '\0') {
+                value += currentChar();
+                advance();
+            }
+            // Trim trailing whitespace from value
+            size_t last = value.find_last_not_of(" \t\r");
+            if (last != std::string::npos) {
+                value = value.substr(0, last + 1);
+            }
+            define(symbol, value);
         }
-        // Skip to end of line
-        while (currentChar() != '\n' && currentChar() != '\0') {
-            advance();
-        }
-        if (currentChar() == '\n') {
-            advance();
-        }
+        while (currentChar() != '\n' && currentChar() != '\0') advance();
+        if (currentChar() == '\n') advance();
+        return true;
+    } else if (directive == "undef") {
+        skipWhitespace();
+        std::string symbol = readIdentifier();
+        if (!symbol.empty()) symbols.erase(symbol);
+        while (currentChar() != '\n' && currentChar() != '\0') advance();
+        if (currentChar() == '\n') advance();
         return true;
     }
     
@@ -254,21 +250,34 @@ std::string Preprocessor::process() {
             bool atLineStart = true;
             if (cursor > 0) {
                 // Look back to see if there's only whitespace before this
-                for (size_t i = cursor - 1; i > 0; i--) {
-                    if (source[i] == '\n') {
-                        break;
-                    }
+                bool onlyWs = true;
+                for (int i = (int)cursor - 1; i >= 0; i--) {
+                    if (source[i] == '\n') break;
                     if (source[i] != ' ' && source[i] != '\t') {
-                        atLineStart = false;
+                        onlyWs = false;
                         break;
                     }
                 }
+                atLineStart = onlyWs;
             }
             
             if (atLineStart) {
                 processDirective(output);
                 continue;
             }
+        }
+        
+        // Check for identifier which could be a macro
+        if (std::isalpha(currentChar()) || currentChar() == '_') {
+            std::string ident = readIdentifier();
+            auto it = symbols.find(ident);
+            if (it != symbols.end()) {
+                // Perform substitution
+                output += it->second;
+            } else {
+                output += ident;
+            }
+            continue;
         }
         
         // Regular character, copy to output

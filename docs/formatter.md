@@ -331,8 +331,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install Lwanga
         run: |
-          wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.0/lwanga_1.0.0-1_amd64.deb
-          sudo dpkg -i lwanga_1.0.0-1_amd64.deb
+          wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga_1.0.2-1_amd64.deb
+          sudo dpkg -i lwanga_1.0.2-1_amd64.deb
       - name: Check formatting
         run: lwangafmt --check src/**/*.lwanga
 ```

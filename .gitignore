@@ -38,3 +38,13 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Packaging artifacts
+dist/
+*.deb
+*.ddeb
+*.buildinfo
+*.changes
+*.tar.gz
+*.pkg.tar.zst
+.SRCINFO

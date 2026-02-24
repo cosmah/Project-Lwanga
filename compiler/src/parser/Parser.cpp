@@ -50,6 +50,7 @@ void Parser::synchronize() {
         
         // Synchronize at keyword boundaries
         switch (currentToken.type) {
+            case TokenType::TOK_RIGHT_BRACE:
             case TokenType::TOK_FN:
             case TokenType::TOK_LET:
             case TokenType::TOK_IF:
@@ -74,20 +75,20 @@ std::unique_ptr<ProgramAST> Parser::parse() {
         try {
             // Parse top-level declarations
             if (match(TokenType::TOK_IMPORT)) {
-                program->imports.push_back(parseImport());
+                if (auto imp = parseImport()) program->imports.push_back(std::move(imp));
             } else if (match(TokenType::TOK_CONST)) {
-                program->constants.push_back(parseConstant());
+                if (auto con = parseConstant()) program->constants.push_back(std::move(con));
             } else if (match(TokenType::TOK_PACKED)) {
                 // Packed struct
                 expect(TokenType::TOK_STRUCT, "Expected 'struct' after 'packed'");
-                program->structs.push_back(parseStruct(true));
+                if (auto str = parseStruct(true)) program->structs.push_back(std::move(str));
             } else if (match(TokenType::TOK_STRUCT)) {
-                program->structs.push_back(parseStruct(false));
+                if (auto str = parseStruct(false)) program->structs.push_back(std::move(str));
             } else if (match(TokenType::TOK_NAKED)) {
                 expect(TokenType::TOK_FN, "Expected 'fn' after 'naked'");
-                program->functions.push_back(parseFunction(true));
+                if (auto fn = parseFunction(true)) program->functions.push_back(std::move(fn));
             } else if (match(TokenType::TOK_FN)) {
-                program->functions.push_back(parseFunction(false));
+                if (auto fn = parseFunction(false)) program->functions.push_back(std::move(fn));
             } else {
                 reportError("Expected top-level declaration (fn, struct, const, import)");
                 synchronize();
@@ -112,6 +113,11 @@ std::unique_ptr<Type> Parser::parseType() {
         return Type::makeU64();
     } else if (match(TokenType::TOK_PTR)) {
         return Type::makePtr();
+    } else if (match(TokenType::TOK_STAR)) {
+        // Pointer type: *Type
+        auto pointee = parseType();
+        if (!pointee) return nullptr;
+        return Type::makePtrTo(std::move(pointee));
     } else if (match(TokenType::TOK_REGISTER)) {
         // Register type - the variable name will be the register name
         auto regType = std::make_unique<Type>(TypeKind::Register);
@@ -301,6 +307,12 @@ std::vector<std::unique_ptr<StmtAST>> Parser::parseBlock() {
         auto stmt = parseStatement();
         if (stmt) {
             statements.push_back(std::move(stmt));
+        } else {
+            // Avoid infinite loop on statement parse failure;
+            // do not consume the block's closing brace.
+            if (!check(TokenType::TOK_RIGHT_BRACE) && !check(TokenType::TOK_EOF)) {
+                synchronize();
+            }
         }
     }
     
@@ -776,11 +788,22 @@ std::unique_ptr<ExprAST> Parser::parsePostfixExpr() {
 std::unique_ptr<ExprAST> Parser::parsePrimaryExpr() {
     // Number literal
     if (check(TokenType::TOK_NUMBER)) {
-        uint64_t value;
-        if (currentToken.lexeme.substr(0, 2) == "0x" || currentToken.lexeme.substr(0, 2) == "0X") {
-            value = std::stoull(currentToken.lexeme, nullptr, 16);
-        } else {
-            value = std::stoull(currentToken.lexeme);
+        uint64_t value = 0;
+        try {
+            if (currentToken.lexeme.substr(0, 2) == "0x" || currentToken.lexeme.substr(0, 2) == "0X") {
+                if (currentToken.lexeme.length() <= 2) {
+                    reportError("Invalid hexadecimal literal");
+                    advance();
+                    return nullptr;
+                }
+                value = std::stoull(currentToken.lexeme, nullptr, 16);
+            } else {
+                value = std::stoull(currentToken.lexeme);
+            }
+        } catch (const std::exception& e) {
+            reportError("Invalid numeric literal: " + currentToken.lexeme);
+            advance();
+            return nullptr;
         }
         advance();
         return std::make_unique<IntLiteralExpr>(value);
@@ -837,7 +860,8 @@ std::unique_ptr<ExprAST> Parser::parsePrimaryExpr() {
         return expr;
     }
     
-    reportError("Expected expression");
+    reportError("Expected expression, found " + currentToken.lexeme);
+    advance(); // Consume the offending token
     return nullptr;
 }
 

@@ -1,3 +1,15 @@
+lwanga (1.0.2-1) unstable; urgency=medium
+
+  * Compiler hardening and stability improvements
+  * Support for *Type pointer syntax (e.g., let p: *u64)
+  * Enhanced preprocessor with macro substitution (#define VAL 100)
+  * Fixed array indexing for stack arrays and opaque pointers
+  * Improved parser robustness and error recovery
+  * Manual instruction demotion for LLVM 18+ obfuscation compatibility
+  * Fixed missing linker dependencies in Debian package
+
+ -- Cosmc Technologies <cosmahke4@gmail.com>  Tue, 24 Feb 2026 22:30:00 +0000
+
 lwanga (1.0.0-1) unstable; urgency=medium
 
   * Initial release

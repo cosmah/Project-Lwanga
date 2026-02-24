@@ -104,7 +104,7 @@ Create a bug report with:
 
 **Environment**:
 - OS: Ubuntu 24.04
-- Lwanga version: 1.0.0
+- Lwanga version: 1.0.2
 - LLVM version: 18.1.0
 ```
 

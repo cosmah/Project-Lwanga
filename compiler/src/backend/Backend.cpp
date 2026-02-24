@@ -20,6 +20,7 @@
 #include <llvm/ExecutionEngine/MCJIT.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm-c/TargetMachine.h>
+#include <llvm/Transforms/Utils/Local.h>
 #include <system_error>
 #include <cstdlib>
 
@@ -86,6 +87,39 @@ void Backend::setObfuscate(bool obfuscate) {
 void Backend::obfuscate() {
     if (!enableObfuscation) {
         return;
+    }
+    
+    // In LLVM 18+, the legacy DemoteRegisterToMemory pass is removed.
+    // We manually demote instructions to the stack to achieve the same result
+    // for the control flow flattener.
+    for (auto& func : *module) {
+        if (!func.isDeclaration()) {
+            std::vector<llvm::PHINode*> phis;
+            std::vector<llvm::Instruction*> toDemote;
+            
+            for (auto& bb : func) {
+                for (auto& inst : bb) {
+                    if (auto* phi = llvm::dyn_cast<llvm::PHINode>(&inst)) {
+                        phis.push_back(phi);
+                    } else if (inst.getType()->isVoidTy() || llvm::isa<llvm::AllocaInst>(&inst)) {
+                        continue;
+                    } else if (inst.isUsedOutsideOfBlock(&bb) || !inst.isTerminator()) {
+                        // For the control flow flattener, we want most things in memory
+                        toDemote.push_back(&inst);
+                    }
+                }
+            }
+            
+            for (auto* phi : phis) {
+                llvm::DemotePHIToStack(phi);
+            }
+            for (auto* inst : toDemote) {
+                // Check if still has users after PHI demotion
+                if (!inst->use_empty()) {
+                    llvm::DemoteRegToStack(*inst);
+                }
+            }
+        }
     }
     
     Obfuscator obfuscator(module);
@@ -232,13 +266,35 @@ bool Backend::generateExecutable(const std::string& filename) {
     }
     
     // Link the object file into an executable
-    // Use system linker (ld or lld)
     std::string linkerCmd;
+    std::string linkerPath;
     
-    // Determine linker based on target
+    // 1. Try to find a suitable linker
+    std::vector<std::string> linkers;
     if (targetTriple.find("linux") != std::string::npos) {
-        // Linux: use ld with minimal flags for freestanding executable
-        linkerCmd = "ld -o " + filename + " " + objFile;
+        linkers = {"ld.lld-18", "ld.lld", "ld"};
+    } else if (targetTriple.find("windows") != std::string::npos) {
+        linkers = {"lld-link-18", "lld-link"};
+    }
+    
+    bool foundLinker = false;
+    for (const auto& l : linkers) {
+        if (std::system(("which " + l + " > /dev/null 2>&1").c_str()) == 0) {
+            linkerPath = l;
+            foundLinker = true;
+            break;
+        }
+    }
+    
+    if (!foundLinker) {
+        setError("No suitable linker found (tried: " + (linkers.empty() ? "none" : linkers[0]) + "). Please install binutils or lld.");
+        std::remove(objFile.c_str());
+        return false;
+    }
+    
+    // 2. Construct linker command
+    if (targetTriple.find("linux") != std::string::npos) {
+        linkerCmd = linkerPath + " -o " + filename + " " + objFile;
         
         // Add architecture-specific flags
         if (targetTriple.find("x86_64") != std::string::npos) {
@@ -247,25 +303,17 @@ bool Backend::generateExecutable(const std::string& filename) {
             linkerCmd += " -m aarch64linux";
         }
         
-        // Static linking, no standard library
+        // Static linking, no standard library for minimal footprint
         linkerCmd += " -static -nostdlib";
         
-        // Set entry point to _start if it exists, otherwise main
-        linkerCmd += " -e _start 2>/dev/null || ld -o " + filename + " " + objFile;
-        if (targetTriple.find("x86_64") != std::string::npos) {
-            linkerCmd += " -m elf_x86_64";
-        } else if (targetTriple.find("aarch64") != std::string::npos) {
-            linkerCmd += " -m aarch64linux";
-        }
-        linkerCmd += " -static -nostdlib -e main";
+        // Try _start as entry point, fallback to main
+        // We do this by creating a command that tries both
+        std::string baseCmd = linkerCmd;
+        linkerCmd = "(" + baseCmd + " -e _start || " + baseCmd + " -e main) 2>/dev/null";
         
     } else if (targetTriple.find("windows") != std::string::npos) {
-        // Windows: use lld-link
-        linkerCmd = "lld-link /OUT:" + filename + ".exe " + objFile + 
-                   " /SUBSYSTEM:CONSOLE /ENTRY:main";
-    } else {
-        setError("Unsupported target platform for linking: " + targetTriple);
-        return false;
+        linkerCmd = linkerPath + " /OUT:" + filename + ".exe " + objFile + 
+                   " /SUBSYSTEM:CONSOLE /ENTRY:main /FIXED /NODEFAULTLIB";
     }
     
     // Execute linker
