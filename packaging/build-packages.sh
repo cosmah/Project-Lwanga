@@ -23,14 +23,22 @@ build_debian() {
     cd "${PROJECT_ROOT}"
     
     # Create build directory
-    mkdir -p build-deb
-    cp -r packaging/debian build-deb/
+    BUILD_DIR="lwanga-${VERSION}-build"
+    rm -rf "${BUILD_DIR}"
+    mkdir -p "${BUILD_DIR}"
+    
+    # Copy source files (excluding git and build artifacts)
+    rsync -a --exclude='.git' --exclude='compiler/build' --exclude="${BUILD_DIR}" ./ "${BUILD_DIR}/"
+    cp -r packaging/debian "${BUILD_DIR}/"
     
     # Build
-    cd build-deb
+    cd "${BUILD_DIR}"
     dpkg-buildpackage -us -uc -b
     
+    cd "${PROJECT_ROOT}"
     echo -e "${GREEN}✓ Debian package built: lwanga_${VERSION}-1_amd64.deb${NC}"
+    # Cleanup
+    rm -rf "${BUILD_DIR}"
 }
 
 # Build Arch package

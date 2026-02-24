@@ -4,9 +4,15 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <stack>
 #include <cstdint>
 
 namespace lwanga {
+
+struct DirectiveInfo {
+    std::string type;
+    uint32_t line;
+};
 
 class Preprocessor {
 public:
@@ -15,8 +21,8 @@ public:
     // Process the source code and return preprocessed output
     std::string process();
     
-    // Define a preprocessor symbol
-    void define(const std::string& symbol);
+    // Define a preprocessor symbol with an optional value
+    void define(const std::string& symbol, const std::string& value = "");
     
     // Check if a symbol is defined
     bool isDefined(const std::string& symbol) const;
@@ -24,7 +30,8 @@ public:
 private:
     std::string source;
     std::string targetTriple;
-    std::unordered_map<std::string, bool> symbols;
+    std::unordered_map<std::string, std::string> symbols;
+    std::stack<DirectiveInfo> directiveStack;
     size_t cursor;
     uint32_t line;
     

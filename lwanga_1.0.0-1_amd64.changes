@@ -1,0 +1,40 @@
+Format: 1.8
+Date: Sat, 22 Feb 2026 19:00:00 +0000
+Source: lwanga
+Binary: lwanga
+Built-For-Profiles: noudeb
+Architecture: amd64
+Version: 1.0.0-1
+Distribution: unstable
+Urgency: medium
+Maintainer: Cosmc Technologies <cosmahke4@gmail.com>
+Changed-By: Cosmc Technologies <cosmahke4@gmail.com>
+Description:
+ lwanga     - Security-focused systems programming language
+Changes:
+ lwanga (1.0.0-1) unstable; urgency=medium
+ .
+   * Initial release
+   * Full compiler with LLVM backend
+   * Support for x86_64 and ARM64 architectures
+   * Inline assembly support (Intel and AT&T syntax)
+   * Direct syscall interface
+   * Position-independent code generation
+   * Encrypted string literals
+   * Code formatter (lwangafmt) with logo headers
+   * Syntax highlighter (lwangacat) with multiple themes
+   * Comprehensive test suite (20+ tests)
+   * Example programs included
+   * File type icons and MIME type registration
+Checksums-Sha1:
+ 73d88530d49c674041bc98fb90a6f0747f10ec6f 6663214 lwanga-dbgsym_1.0.0-1_amd64.ddeb
+ 6faf90168f69f2f216b1b3e739e4703fc5f582d3 8904 lwanga_1.0.0-1_amd64.buildinfo
+ 74fc7b69708cab505dce9cafa5f7c9f96cc69b55 20367052 lwanga_1.0.0-1_amd64.deb
+Checksums-Sha256:
+ 829668ddbc7501ec0a3cf70b49e86c40b6703be4842c66e5d72700e9afecefa0 6663214 lwanga-dbgsym_1.0.0-1_amd64.ddeb
+ 9985bd2f5e4cebb3b7bf9f6769cad8b5c4b1a305b145849f10d0e4d6d5bb6ac1 8904 lwanga_1.0.0-1_amd64.buildinfo
+ b388b04da1da64f2b4a017fa542904107a414bd876fe3823ee6bee0c4b9c0577 20367052 lwanga_1.0.0-1_amd64.deb
+Files:
+ 6a76df958ff4ceaf74c3877735ea6a36 6663214 debug optional lwanga-dbgsym_1.0.0-1_amd64.ddeb
+ 006fbfc23cc60f0dc841b467456008c5 8904 devel optional lwanga_1.0.0-1_amd64.buildinfo
+ 9e72cf77ab9859613aaa4e2f0eed6daf 20367052 devel optional lwanga_1.0.0-1_amd64.deb

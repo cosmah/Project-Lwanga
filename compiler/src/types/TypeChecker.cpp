@@ -106,6 +106,55 @@ void TypeChecker::collectStruct(StructAST* structDef) {
     if (!symbolTable.define(structDef->name, std::move(symbol))) {
         reportError("Struct '" + structDef->name + "' already defined");
     }
+    
+    // Check for circular dependencies
+    std::vector<std::string> path;
+    if (checkCircularStruct(structDef->name, path)) {
+        // Error already reported in checkCircularStruct
+    }
+}
+
+bool TypeChecker::checkCircularStruct(const std::string& name, std::vector<std::string>& path) {
+    // Check if we've seen this struct in the current recursion path
+    for (const auto& seen : path) {
+        if (seen == name) {
+            std::string cycle = "";
+            for (const auto& p : path) cycle += p + " -> ";
+            reportError("Circular struct definition detected: " + cycle + name);
+            return true;
+        }
+    }
+    
+    // Add to path
+    path.push_back(name);
+    
+    auto it = structDefinitions.find(name);
+    if (it == structDefinitions.end()) {
+        path.pop_back();
+        return false;
+    }
+    
+    StructAST* structDef = it->second;
+    for (const auto& field : structDef->fields) {
+        // Only direct struct members (not pointers) can cause infinite size
+        if (field.type->kind == TypeKind::Struct) {
+            if (checkCircularStruct(field.type->structName, path)) {
+                return true;
+            }
+        } else if (field.type->kind == TypeKind::Array) {
+            // Arrays of structs also cause issues
+            Type* elem = field.type->elementType.get();
+            while (elem && elem->kind == TypeKind::Array) elem = elem->elementType.get();
+            if (elem && elem->kind == TypeKind::Struct) {
+                if (checkCircularStruct(elem->structName, path)) {
+                    return true;
+                }
+            }
+        }
+    }
+    
+    path.pop_back();
+    return false;
 }
 
 void TypeChecker::collectConstant(ConstantAST* constant) {
@@ -609,8 +658,15 @@ bool TypeChecker::verifyAllPathsReturn(const std::vector<std::unique_ptr<StmtAST
         return false;
     }
     
-    // Check if last statement returns
-    return statementReturns(stmts.back().get());
+    // Scan all statements. If any statement is guaranteed to return,
+    // then the entire block is guaranteed to return.
+    for (const auto& stmt : stmts) {
+        if (statementReturns(stmt.get())) {
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 bool TypeChecker::statementReturns(StmtAST* stmt) {

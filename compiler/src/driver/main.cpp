@@ -129,6 +129,11 @@ int main(int argc, char **argv) {
     InitializeAllAsmParsers();
     
     // Parse command line options
+    cl::AddExtraVersionPrinter([](raw_ostream &OS) {
+        OS << "Lwanga Compiler v1.0.0\n";
+        OS << "Security-focused systems programming language\n";
+        OS << "Built with LLVM " << LLVM_VERSION_STRING << "\n";
+    });
     cl::ParseCommandLineOptions(argc, argv, "Lwanga Compiler\n");
     
     // Show logo if verbose
@@ -139,7 +144,7 @@ int main(int argc, char **argv) {
     auto startTime = std::chrono::high_resolution_clock::now();
     
     if (Verbose) {
-        std::cout << lwanga::Color::BOLD << "Lwanga Compiler v0.1.0\n" << lwanga::Color::RESET;
+        std::cout << lwanga::Color::BOLD << "Lwanga Compiler v1.0.0\n" << lwanga::Color::RESET;
         std::cout << lwanga::Color::DIM << "Input file: " << lwanga::Color::RESET << InputFilename << "\n";
         std::cout << lwanga::Color::DIM << "Output file: " << lwanga::Color::RESET << OutputFilename << "\n";
         std::cout << lwanga::Color::DIM << "Optimization level: " << lwanga::Color::RESET << "-O" << OptLevel << "\n";
@@ -218,7 +223,7 @@ int main(int argc, char **argv) {
     
     auto irGenStart = std::chrono::high_resolution_clock::now();
     
-    IRGenerator irGen("lwanga_module", InputFilename);
+    IRGenerator irGen("lwanga_module", InputFilename, TargetTriple);
     irGen.setDebugInfo(DebugInfo);
     
     if (!irGen.generate(program.get())) {

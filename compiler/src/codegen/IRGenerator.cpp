@@ -8,11 +8,14 @@
 
 namespace lwanga {
 
-IRGenerator::IRGenerator(const std::string& moduleName, const std::string& sourceFile) 
+IRGenerator::IRGenerator(const std::string& moduleName, const std::string& sourceFile, const std::string& targetTriple) 
     : currentFunction(nullptr), generateDebugInfo(false), 
       sourceFilename(sourceFile), compileUnit(nullptr), debugFile(nullptr) {
     context = std::make_unique<llvm::LLVMContext>();
     module = std::make_unique<llvm::Module>(moduleName, *context);
+    if (!targetTriple.empty()) {
+        module->setTargetTriple(targetTriple);
+    }
     builder = std::make_unique<llvm::IRBuilder<>>(*context);
 }
 
@@ -374,9 +377,10 @@ void IRGenerator::generateFunction(FunctionAST* func) {
     llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(*context, "entry", llvmFunc);
     builder->SetInsertPoint(entryBB);
     
-    // Clear named values
+    // Clear named values and types
     namedValues.clear();
     namedTypes.clear();
+    pointeeTypes.clear();
     
     // Allocate space for parameters and store them
     unsigned argIdx = 0;
@@ -389,6 +393,11 @@ void IRGenerator::generateFunction(FunctionAST* func) {
         builder->CreateStore(&arg, alloca);
         namedValues[std::string(arg.getName())] = alloca;
         namedTypes[std::string(arg.getName())] = arg.getType();
+        
+        // Track pointee type for pointer parameters
+        if (argIdx < func->params.size() && func->params[argIdx].type->kind == TypeKind::Ptr) {
+            pointeeTypes[std::string(arg.getName())] = convertType(func->params[argIdx].type->pointeeType.get());
+        }
         
         // Create debug info for parameter
         if (generateDebugInfo && debugBuilder && debugFunc && argIdx < func->params.size()) {
@@ -455,6 +464,11 @@ void IRGenerator::exitScope() {
 }
 
 void IRGenerator::generateStatement(StmtAST* stmt) {
+    // If the current block already has a terminator, don't generate more code
+    if (builder->GetInsertBlock()->getTerminator()) {
+        return;
+    }
+    
     if (auto* varDecl = dynamic_cast<VarDeclStmt*>(stmt)) {
         generateVarDecl(varDecl);
     } else if (auto* assignment = dynamic_cast<AssignmentStmt*>(stmt)) {
@@ -535,6 +549,11 @@ void IRGenerator::generateVarDecl(VarDeclStmt* stmt) {
     // Add to named values and types
     namedValues[stmt->name] = alloca;
     namedTypes[stmt->name] = varType;
+    
+    // Track pointee type for pointer variables
+    if (stmt->type->kind == TypeKind::Ptr && stmt->type->pointeeType) {
+        pointeeTypes[stmt->name] = convertType(stmt->type->pointeeType.get());
+    }
 }
 
 void IRGenerator::generateAssignment(AssignmentStmt* stmt) {
@@ -746,6 +765,8 @@ void IRGenerator::generateAsm(AsmStmt* stmt) {
     std::string constraints;
     std::vector<llvm::Value*> asmArgs;
     std::vector<llvm::Type*> asmArgTypes;
+    std::vector<llvm::Value*> outputAddrs;
+    std::vector<llvm::Type*> outputTypes;
     
     // Process output operands
     for (size_t i = 0; i < stmt->outputs.size(); i++) {
@@ -759,14 +780,31 @@ void IRGenerator::generateAsm(AsmStmt* stmt) {
         }
         
         // Add constraint (outputs come first)
-        if (i > 0 || !stmt->inputs.empty() || !stmt->clobbers.empty()) {
+        if (!constraints.empty()) {
             constraints += ",";
         }
         constraints += output.constraint;
         
-        // For outputs, we pass the address
-        asmArgs.push_back(addr);
-        asmArgTypes.push_back(addr->getType());
+        // Track output addresses and types for later storage
+        outputAddrs.push_back(addr);
+        
+        // Determine type of the output variable
+        llvm::Type* varType = llvm::Type::getInt64Ty(*context); // Fallback
+        if (auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(addr)) {
+            varType = alloca->getAllocatedType();
+        } else if (addr->getType()->isPointerTy()) {
+            // Check if we can deduce type from namedTypes
+            if (auto* ident = dynamic_cast<IdentifierExpr*>(output.expr.get())) {
+                if (namedTypes.count(ident->name)) varType = namedTypes[ident->name];
+            }
+        }
+        outputTypes.push_back(varType);
+        
+        // If it's an indirect (memory) output, it needs an argument
+        if (output.constraint.find("*m") != std::string::npos) {
+            asmArgs.push_back(addr);
+            asmArgTypes.push_back(addr->getType());
+        }
     }
     
     // Process input operands
@@ -798,18 +836,21 @@ void IRGenerator::generateAsm(AsmStmt* stmt) {
         constraints += "~{" + clobber + "}";
     }
     
-    // Determine return type based on outputs
+    // Determine return type based on direct outputs
     llvm::Type* returnType;
-    if (stmt->outputs.empty()) {
+    std::vector<llvm::Type*> directOutputTypes;
+    for (size_t i = 0; i < stmt->outputs.size(); i++) {
+        if (stmt->outputs[i].constraint.find("*m") == std::string::npos) {
+            directOutputTypes.push_back(outputTypes[i]);
+        }
+    }
+    
+    if (directOutputTypes.empty()) {
         returnType = llvm::Type::getVoidTy(*context);
-    } else if (stmt->outputs.size() == 1) {
-        // Single output: determine type from the expression
-        // For now, use u64 as default output type
-        returnType = llvm::Type::getInt64Ty(*context);
+    } else if (directOutputTypes.size() == 1) {
+        returnType = directOutputTypes[0];
     } else {
-        // Multiple outputs: return struct of u64s
-        std::vector<llvm::Type*> outputTypes(stmt->outputs.size(), llvm::Type::getInt64Ty(*context));
-        returnType = llvm::StructType::get(*context, outputTypes);
+        returnType = llvm::StructType::get(*context, directOutputTypes);
     }
     
     // Create function type for inline assembly
@@ -833,15 +874,23 @@ void IRGenerator::generateAsm(AsmStmt* stmt) {
     llvm::Value* result = builder->CreateCall(inlineAsm, asmArgs);
     
     // Store results back to output operands
-    if (!stmt->outputs.empty()) {
-        if (stmt->outputs.size() == 1) {
-            // Single output: store directly
-            builder->CreateStore(result, asmArgs[0]);
-        } else {
-            // Multiple outputs: extract from struct and store
+    if (!directOutputTypes.empty()) {
+        if (directOutputTypes.size() == 1) {
+            // Find which output was direct
             for (size_t i = 0; i < stmt->outputs.size(); i++) {
-                llvm::Value* extracted = builder->CreateExtractValue(result, i);
-                builder->CreateStore(extracted, asmArgs[i]);
+                if (stmt->outputs[i].constraint.find("*m") == std::string::npos) {
+                    builder->CreateStore(result, outputAddrs[i]);
+                    break;
+                }
+            }
+        } else {
+            // Multiple outputs: extract from struct
+            size_t directIdx = 0;
+            for (size_t i = 0; i < stmt->outputs.size(); i++) {
+                if (stmt->outputs[i].constraint.find("*m") == std::string::npos) {
+                    llvm::Value* extracted = builder->CreateExtractValue(result, directIdx++);
+                    builder->CreateStore(extracted, outputAddrs[i]);
+                }
             }
         }
     }
@@ -1309,11 +1358,17 @@ llvm::Value* IRGenerator::generateArrayIndex(ArrayIndexExpr* expr) {
     
     // If the array is a simple identifier, look up its type
     if (auto* ident = dynamic_cast<IdentifierExpr*>(expr->array.get())) {
-        auto typeIt = namedTypes.find(ident->name);
-        if (typeIt != namedTypes.end()) {
-            llvm::Type* arrayType = typeIt->second;
+        auto it = namedTypes.find(ident->name);
+        if (it != namedTypes.end()) {
+            llvm::Type* arrayType = it->second;
             if (auto* arrType = llvm::dyn_cast<llvm::ArrayType>(arrayType)) {
                 elemType = arrType->getElementType();
+            } else {
+                // Check if it's a pointer with a known pointee type
+                auto pIt = pointeeTypes.find(ident->name);
+                if (pIt != pointeeTypes.end() && pIt->second) {
+                    elemType = pIt->second;
+                }
             }
         }
     }
@@ -1533,21 +1588,52 @@ llvm::Value* IRGenerator::generateFieldAddress(FieldAccessExpr* expr) {
 }
 
 llvm::Value* IRGenerator::generateArrayElementAddress(ArrayIndexExpr* expr) {
-    // Get the array pointer
-    llvm::Value* arrayPtr = generateExpression(expr->array.get());
-    llvm::Value* index = generateExpression(expr->index.get());
+    llvm::Value* arrayPtr = nullptr;
+    llvm::Type* elementType = llvm::Type::getInt8Ty(*context);
     
-    if (!arrayPtr || !index) {
-        return nullptr;
+    // Check if it's a direct array variable access
+    if (auto* ident = dynamic_cast<IdentifierExpr*>(expr->array.get())) {
+        auto it = namedTypes.find(ident->name);
+        if (it != namedTypes.end()) {
+            llvm::Type* type = it->second;
+            if (type->isArrayTy()) {
+                // It's a stack-allocated array: [N x T]
+                // We want its address (the alloca) and use two indices: [0, index]
+                arrayPtr = namedValues[ident->name];
+                elementType = type->getArrayElementType();
+                
+                llvm::Value* index = generateExpression(expr->index.get());
+                if (!arrayPtr || !index) return nullptr;
+                
+                std::vector<llvm::Value*> indices = {
+                    llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0),
+                    index
+                };
+                
+                return builder->CreateGEP(type, arrayPtr, indices, "elemaddr");
+            } else {
+                // It's a pointer or other type: evaluate it normally (loads the pointer)
+                arrayPtr = generateExpression(expr->array.get());
+                
+                // Try to determine element type from pointeeTypes map
+                auto pIt = pointeeTypes.find(ident->name);
+                if (pIt != pointeeTypes.end() && pIt->second) {
+                    elementType = pIt->second;
+                }
+            }
+        }
     }
     
-    // Use GEP to compute element address
-    return builder->CreateGEP(
-        llvm::Type::getInt8Ty(*context),
-        arrayPtr,
-        index,
-        "elemaddr"
-    );
+    // Fallback for general expressions (e.g. results of calls or pointer arithmetic)
+    if (!arrayPtr) {
+        arrayPtr = generateExpression(expr->array.get());
+    }
+    
+    llvm::Value* index = generateExpression(expr->index.get());
+    if (!arrayPtr || !index) return nullptr;
+    
+    // For pointers, use single index GEP
+    return builder->CreateGEP(elementType, arrayPtr, index, "elemaddr");
 }
 
 llvm::Constant* IRGenerator::evaluateConstantExpression(ExprAST* expr) {
@@ -1878,7 +1964,7 @@ void IRGenerator::initializeDebugInfo() {
     compileUnit = debugBuilder->createCompileUnit(
         llvm::dwarf::DW_LANG_C,  // Use C language tag (closest to Lwanga)
         debugFile,
-        "Lwanga Compiler v0.1.0",  // Producer
+        "Lwanga Compiler v1.0.0",  // Producer
         false,  // isOptimized (will be set by backend)
         "",     // Flags
         0       // Runtime version
