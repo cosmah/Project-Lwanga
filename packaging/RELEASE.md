@@ -187,7 +187,7 @@ git push
 ```markdown
 # Lwanga v1.0.2 Released! 🎉
 
-We're excited to announce the first stable release of Lwanga, a security-focused systems programming language designed for low-level development, shellcode, and penetration testing.
+We're excited to announce the v1.0.2 release of Lwanga, a security-focused systems programming language designed for low-level development, shellcode, and penetration testing.
 
 ## What is Lwanga?
 

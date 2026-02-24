@@ -99,7 +99,6 @@ bool Preprocessor::evaluateCondition(const std::string& condition) {
 void Preprocessor::skipUntilEndif(int depth) {
     while (currentChar() != '\0') {
         if (currentChar() == '#') {
-            size_t savedCursor = cursor;
             advance();
             skipWhitespace();
             std::string directive = readIdentifier();
@@ -268,7 +267,6 @@ std::string Preprocessor::process() {
         
         // Check for identifier which could be a macro
         if (std::isalpha(currentChar()) || currentChar() == '_') {
-            size_t startPos = cursor;
             std::string ident = readIdentifier();
             auto it = symbols.find(ident);
             if (it != symbols.end() && !it->second.empty()) {

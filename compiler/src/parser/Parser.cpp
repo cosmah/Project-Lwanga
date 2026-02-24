@@ -50,6 +50,7 @@ void Parser::synchronize() {
         
         // Synchronize at keyword boundaries
         switch (currentToken.type) {
+            case TokenType::TOK_RIGHT_BRACE:
             case TokenType::TOK_FN:
             case TokenType::TOK_LET:
             case TokenType::TOK_IF:
@@ -115,6 +116,7 @@ std::unique_ptr<Type> Parser::parseType() {
     } else if (match(TokenType::TOK_STAR)) {
         // Pointer type: *Type
         auto pointee = parseType();
+        if (!pointee) return nullptr;
         return Type::makePtrTo(std::move(pointee));
     } else if (match(TokenType::TOK_REGISTER)) {
         // Register type - the variable name will be the register name
@@ -306,8 +308,11 @@ std::vector<std::unique_ptr<StmtAST>> Parser::parseBlock() {
         if (stmt) {
             statements.push_back(std::move(stmt));
         } else {
-            // Avoid infinite loop if parsing fail
-            synchronize();
+            // Avoid infinite loop on statement parse failure;
+            // do not consume the block's closing brace.
+            if (!check(TokenType::TOK_RIGHT_BRACE) && !check(TokenType::TOK_EOF)) {
+                synchronize();
+            }
         }
     }
     

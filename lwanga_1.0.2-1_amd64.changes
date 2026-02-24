@@ -22,14 +22,14 @@ Changes:
    * Manual instruction demotion for LLVM 18+ obfuscation compatibility
    * Fixed missing linker dependencies in Debian package
 Checksums-Sha1:
- f8acc17e4f0659b88c099b0efcc002417ee06df3 6830652 lwanga-dbgsym_1.0.2-1_amd64.ddeb
- 22e1cb4d15b4dad3fa04cb4a78a256273c4b6a08 8904 lwanga_1.0.2-1_amd64.buildinfo
- 614dcd30335ad6751f81d59988c9384ebd8923e2 20387402 lwanga_1.0.2-1_amd64.deb
+ f799d782a93d9e8f126fe512d6394a470fdfbe06 6828856 lwanga-dbgsym_1.0.2-1_amd64.ddeb
+ 9ebfa4ee7bb38b3184afa2fab6db09fe6e76d11e 8904 lwanga_1.0.2-1_amd64.buildinfo
+ 38e7358f234cc59933c9fea3ba26dee66ba1a484 20384212 lwanga_1.0.2-1_amd64.deb
 Checksums-Sha256:
- d61b0bd488c225c4b63db633e23a42e421c35d9918b4fb527a174dcdfef24c02 6830652 lwanga-dbgsym_1.0.2-1_amd64.ddeb
- 34d78c478e37692655e66dc28df98009d641f53dacb079a4ae89c8c1b5489309 8904 lwanga_1.0.2-1_amd64.buildinfo
- 8a40de5e91e4372a865ed390ac60e46091a9b1136d0fe4f69d6cb982175808d1 20387402 lwanga_1.0.2-1_amd64.deb
+ 9aa08584e28ad341ede228d30911d674b1df59ef4ece8f21fc9bd36ee3f44e7a 6828856 lwanga-dbgsym_1.0.2-1_amd64.ddeb
+ 903172d6098d5d3d487f9ca83c179201939e38e159c5ad3e2c7e7e019e53645f 8904 lwanga_1.0.2-1_amd64.buildinfo
+ 6b712a039adba86da0fa98e5f24c965ef263c0151738196afc5205d1631af91a 20384212 lwanga_1.0.2-1_amd64.deb
 Files:
- 3915ab194f1d4a811b962259fc795743 6830652 debug optional lwanga-dbgsym_1.0.2-1_amd64.ddeb
- ad2376bcb2d60eff7bb06709d48d2012 8904 devel optional lwanga_1.0.2-1_amd64.buildinfo
- 93f97b628d2367feb7453de17478758c 20387402 devel optional lwanga_1.0.2-1_amd64.deb
+ 51a01caa668124e6a42c9ea36ed00955 6828856 debug optional lwanga-dbgsym_1.0.2-1_amd64.ddeb
+ b8339bd34b2803f0d2bdeb4fe2d9e5f6 8904 devel optional lwanga_1.0.2-1_amd64.buildinfo
+ fe2e2fe9006ac736ed83274ae20874a7 20384212 devel optional lwanga_1.0.2-1_amd64.deb

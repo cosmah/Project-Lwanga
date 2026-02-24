@@ -2,7 +2,7 @@
 
 All notable changes to the Lwanga VS Code extension will be documented in this file.
 
-## [1.0.2] - 2024-02-22
+## [1.0.2] - 2026-02-24
 
 ### Added
 - Initial release

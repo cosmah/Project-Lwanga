@@ -22,7 +22,7 @@ sha256sum lwanga_1.0.2-1_*.deb > lwanga_1.0.2-1_amd64.deb.sha256
    - **Tag**: `v1.0.2`
    - **Release title**: `Lwanga v1.0.2 - Initial Release`
    - **Description**: 
-   ```markdown
+   ````markdown
    # Lwanga v1.0.2 - Initial Release
    
    First stable release of Lwanga programming language.
@@ -49,7 +49,7 @@ sha256sum lwanga_1.0.2-1_*.deb > lwanga_1.0.2-1_amd64.deb.sha256
    
    ## Changelog
    See [CHANGELOG.md](https://github.com/cosmah/Project-Lwanga/blob/main/CHANGELOG.md)
-   ```
+   ````
 
 3. **Attach files**:
    - Drag and drop `lwanga_1.0.2-1_amd64.deb`
@@ -61,14 +61,14 @@ sha256sum lwanga_1.0.2-1_*.deb > lwanga_1.0.2-1_amd64.deb.sha256
 
 Update the download link in README.md to point to the actual release:
 
-```markdown
+````markdown
 ### Ubuntu/Debian
 ```bash
 wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga_1.0.2-1_amd64.deb
 sudo dpkg -i lwanga_1.0.2-1_amd64.deb
 sudo apt-get install -f
 ```
-```
+````
 
 ## 5. Test the Installation
 

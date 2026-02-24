@@ -9,8 +9,10 @@ override_dh_auto_configure:
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_INSTALL_PREFIX=/usr
 
+include /usr/share/dpkg/buildopts.mk
+
 override_dh_auto_build:
-	cd compiler/build && make -j$(nproc)
+	cd compiler/build && make $(addprefix -j,$(DEB_BUILD_OPTION_PARALLEL))
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))

@@ -1,4 +1,5 @@
 #include "IRGenerator.h"
+#include "Version.h"
 #include <llvm/IR/Verifier.h>
 #include <llvm/IR/InlineAsm.h>
 #include <llvm/IR/DebugInfoMetadata.h>
@@ -1964,7 +1965,7 @@ void IRGenerator::initializeDebugInfo() {
     compileUnit = debugBuilder->createCompileUnit(
         llvm::dwarf::DW_LANG_C,  // Use C language tag (closest to Lwanga)
         debugFile,
-        "Lwanga Compiler v1.0.2",  // Producer
+        "Lwanga Compiler v" LWANGA_VERSION,  // Producer
         false,  // isOptimized (will be set by backend)
         "",     // Flags
         0       // Runtime version
