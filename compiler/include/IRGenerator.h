@@ -53,9 +53,6 @@ private:
     std::vector<std::unordered_map<std::string, llvm::Type*>> typeScopeStack;
     std::vector<std::unordered_map<std::string, llvm::Type*>> pointeeScopeStack;
     
-    // Track pointee types for pointer variables (needed for indexing opaque pointers)
-    std::unordered_map<std::string, llvm::Type*> pointeeTypes;
-    
     // Track constants (map name to constant value)
     std::unordered_map<std::string, llvm::Constant*> constants;
     
