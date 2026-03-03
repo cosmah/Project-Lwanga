@@ -104,7 +104,7 @@ lwangac -v hello.lwanga -o hello
 
 Output:
 ```
-Lwanga Compiler v1.0.2
+Lwanga Compiler v1.0.3
 Input file: hello.lwanga
 Output file: hello
 Optimization level: -O0

@@ -16,6 +16,7 @@ namespace lwanga {
 
 // IR generation for Lwanga AST
 class IRGenerator {
+    llvm::Type* resolveLValueType(ExprAST* expr);
 public:
     IRGenerator(const std::string& moduleName, const std::string& sourceFile = "", const std::string& targetTriple = "");
     ~IRGenerator();
@@ -46,6 +47,11 @@ private:
     
     // Track allocated types for variables (needed for LLVM 18 opaque pointers)
     std::unordered_map<std::string, llvm::Type*> namedTypes;
+    // Track pointee types for pointer variables (needed for indexing opaque pointers)
+    std::unordered_map<std::string, llvm::Type*> pointeeTypes;
+    // Scope stacks for types
+    std::vector<std::unordered_map<std::string, llvm::Type*>> typeScopeStack;
+    std::vector<std::unordered_map<std::string, llvm::Type*>> pointeeScopeStack;
     
     // Track pointee types for pointer variables (needed for indexing opaque pointers)
     std::unordered_map<std::string, llvm::Type*> pointeeTypes;

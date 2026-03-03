@@ -261,7 +261,7 @@ fn main() -> u64 {
 **For Library Files**:
 ```lwanga
 // ╦  ╦ ╦╔═╗╔╗╔╔═╗╔═╗  Library
-// ║  ║║║╠═╣║║║║ ╦╠═╣  v1.0.2
+// ║  ║║║╠═╣║║║║ ╦╠═╣  v1.0.3
 // ╩═╝╚╩╝╩ ╩╝╚╝╚═╝╩ ╩
 //
 // Module: crypto/hash
@@ -298,7 +298,7 @@ naked fn shellcode() -> u64 {
 # .lwanga.toml
 [project]
 name = "my-project"
-version = "1.0.2"
+version = "1.0.3"
 
 [branding]
 logo_in_files = true
@@ -730,7 +730,7 @@ extensions/vscode/
   "name": "lwanga",
   "displayName": "Lwanga Language Support",
   "description": "Syntax highlighting and language support for Lwanga",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "lwanga-lang",
   "icon": "icons/lwanga-file.png",
   "engines": {
@@ -869,13 +869,13 @@ npm install -g @vscode/vsce
 cd extensions/vscode
 vsce package
 
-# This creates lwanga-1.0.2.vsix
+# This creates lwanga-1.0.3.vsix
 
 # Publish to VS Code Marketplace
 vsce publish
 
 # Or install locally for testing
-code --install-extension lwanga-1.0.2.vsix
+code --install-extension lwanga-1.0.3.vsix
 ```
 
 **Installation Instructions for Users**:
@@ -884,10 +884,10 @@ code --install-extension lwanga-1.0.2.vsix
 # Search for "Lwanga" in Extensions panel
 
 # Option 2: From .vsix file
-code --install-extension lwanga-1.0.2.vsix
+code --install-extension lwanga-1.0.3.vsix
 
 # Option 3: Manual installation
-cp -r extensions/vscode ~/.vscode/extensions/lwanga-1.0.2
+cp -r extensions/vscode ~/.vscode/extensions/lwanga-1.0.3
 ```
 
 ## 8. Implementation Priority

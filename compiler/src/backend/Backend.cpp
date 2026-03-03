@@ -23,6 +23,16 @@
 #include <llvm/Transforms/Utils/Local.h>
 #include <system_error>
 #include <cstdlib>
+#include <cstring>
+#include <sstream>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#endif
 
 namespace lwanga {
 
@@ -268,65 +278,154 @@ bool Backend::generateExecutable(const std::string& filename) {
     // Link the object file into an executable
     std::string linkerCmd;
     std::string linkerPath;
-    
-    // 1. Try to find a suitable linker
     std::vector<std::string> linkers;
     if (targetTriple.find("linux") != std::string::npos) {
         linkers = {"ld.lld-18", "ld.lld", "ld"};
     } else if (targetTriple.find("windows") != std::string::npos) {
         linkers = {"lld-link-18", "lld-link"};
     }
-    
+
+    // Platform-aware linker discovery
+#ifdef _WIN32
+    char fullPath[MAX_PATH];
     bool foundLinker = false;
     for (const auto& l : linkers) {
-        if (std::system(("which " + l + " > /dev/null 2>&1").c_str()) == 0) {
-            linkerPath = l;
+        if (SearchPathA(nullptr, l.c_str(), ".exe", MAX_PATH, fullPath, nullptr)) {
+            linkerPath = std::string(fullPath);
             foundLinker = true;
             break;
         }
     }
-    
+#else
+    bool foundLinker = false;
+    for (const auto& l : linkers) {
+        std::string path = l;
+        if (access(path.c_str(), X_OK) == 0) {
+            linkerPath = path;
+            foundLinker = true;
+            break;
+        }
+        // Search $PATH
+        const char* envPath = getenv("PATH");
+        if (envPath) {
+            std::stringstream ss(envPath);
+            std::string segment;
+            char sep = ':';
+            while (std::getline(ss, segment, sep)) {
+                std::string candidate = segment + "/" + l;
+                if (access(candidate.c_str(), X_OK) == 0) {
+                    linkerPath = candidate;
+                    foundLinker = true;
+                    break;
+                }
+            }
+        }
+        if (foundLinker) break;
+    }
+#endif
     if (!foundLinker) {
         setError("No suitable linker found (tried: " + (linkers.empty() ? "none" : linkers[0]) + "). Please install binutils or lld.");
         std::remove(objFile.c_str());
         return false;
     }
-    
-    // 2. Construct linker command
+
+    // Build argument vector
+    std::vector<std::string> args;
     if (targetTriple.find("linux") != std::string::npos) {
-        linkerCmd = linkerPath + " -o " + filename + " " + objFile;
-        
-        // Add architecture-specific flags
+        args.push_back(linkerPath);
+        args.push_back("-o");
+        args.push_back(filename);
+        args.push_back(objFile);
         if (targetTriple.find("x86_64") != std::string::npos) {
-            linkerCmd += " -m elf_x86_64";
+            args.push_back("-m");
+            args.push_back("elf_x86_64");
         } else if (targetTriple.find("aarch64") != std::string::npos) {
-            linkerCmd += " -m aarch64linux";
+            args.push_back("-m");
+            args.push_back("aarch64linux");
         }
-        
-        // Static linking, no standard library for minimal footprint
-        linkerCmd += " -static -nostdlib";
-        
-        // Try _start as entry point, fallback to main
-        // We do this by creating a command that tries both
-        std::string baseCmd = linkerCmd;
-        linkerCmd = "(" + baseCmd + " -e _start || " + baseCmd + " -e main) 2>/dev/null";
-        
+        args.push_back("-static");
+        args.push_back("-nostdlib");
+        // Entry point: try _start, fallback to main
+        args.push_back("-e");
+        args.push_back("_start");
     } else if (targetTriple.find("windows") != std::string::npos) {
-        linkerCmd = linkerPath + " /OUT:" + filename + ".exe " + objFile + 
-                   " /SUBSYSTEM:CONSOLE /ENTRY:main /FIXED /NODEFAULTLIB";
+        args.push_back(linkerPath);
+        args.push_back("/OUT:" + filename + ".exe");
+        args.push_back(objFile);
+        args.push_back("/SUBSYSTEM:CONSOLE");
+        args.push_back("/ENTRY:main");
+        args.push_back("/FIXED");
+        args.push_back("/NODEFAULTLIB");
     }
-    
-    // Execute linker
-    int result = std::system(linkerCmd.c_str());
-    
-    // Clean up object file
+
+    // Convert args to char* array
+    std::vector<char*> argv;
+    for (auto& arg : args) argv.push_back(const_cast<char*>(arg.c_str()));
+    argv.push_back(nullptr);
+
+    // Spawn process
+#ifdef _WIN32
+    std::string cmdLine;
+    for (size_t i = 0; i < args.size(); ++i) {
+        if (i > 0) cmdLine += " ";
+        std::string arg = args[i];
+        bool needsQuotes = arg.empty() || arg.find_first_of(" \t\n\v\"") != std::string::npos;
+        if (needsQuotes) {
+            cmdLine += '"';
+            for (size_t j = 0; j < arg.length(); ++j) {
+                size_t backslashes = 0;
+                while (j < arg.length() && arg[j] == '\\') {
+                    backslashes++;
+                    j++;
+                }
+                if (j == arg.length()) {
+                    for (size_t k = 0; k < backslashes * 2; ++k) cmdLine += '\\';
+                } else if (arg[j] == '"') {
+                    for (size_t k = 0; k < backslashes * 2 + 1; ++k) cmdLine += '\\';
+                    cmdLine += '"';
+                } else {
+                    for (size_t k = 0; k < backslashes; ++k) cmdLine += '\\';
+                    cmdLine += arg[j];
+                }
+            }
+            cmdLine += '"';
+        } else {
+            cmdLine += arg;
+        }
+    }
+    STARTUPINFOA si = { sizeof(si) };
+    PROCESS_INFORMATION pi;
+    BOOL success = CreateProcessA(nullptr, const_cast<char*>(cmdLine.c_str()), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+    if (!success) {
+        setError("Linker process spawn failed");
+        std::remove(objFile.c_str());
+        return false;
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD exitCode = 0;
+    GetExitCodeProcess(pi.hProcess, &exitCode);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    int result = exitCode;
+#else
+    pid_t pid = fork();
+    if (pid == 0) {
+        execvp(argv[0], argv.data());
+        _exit(127);
+    } else if (pid < 0) {
+        setError("Failed to fork linker process: " + std::string(strerror(errno)));
+        std::remove(objFile.c_str());
+        return false;
+    }
+    int status = 0;
+    waitpid(pid, &status, 0);
+    int result = WIFEXITED(status) ? WEXITSTATUS(status) : status;
+#endif
     std::remove(objFile.c_str());
-    
     if (result != 0) {
         setError("Linking failed with exit code: " + std::to_string(result));
         return false;
     }
-    
     return true;
 }
 

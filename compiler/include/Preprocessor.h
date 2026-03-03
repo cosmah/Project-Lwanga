@@ -12,6 +12,7 @@ namespace lwanga {
 struct DirectiveInfo {
     std::string type;
     uint32_t line;
+    bool sawElse;
 };
 
 class Preprocessor {
@@ -46,7 +47,7 @@ private:
     bool processDirective(std::string& output);
     bool evaluateCondition(const std::string& condition);
     void skipUntilEndif(int depth = 1);
-    bool skipUntilElseOrEndif(int depth = 1);
+    int skipUntilElseOrEndif(int depth = 1);
     
     // Initialize platform-specific symbols
     void initPlatformSymbols();

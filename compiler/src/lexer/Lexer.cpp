@@ -238,6 +238,14 @@ Token Lexer::parseOperator() {
         advance(); advance();
         return makeToken(TokenType::TOK_GREATER_EQUAL, ">=", startLine, startColumn);
     }
+    if (current == '&' && next == '&') {
+        advance(); advance();
+        return makeToken(TokenType::TOK_LOGICAL_AND, "&&", startLine, startColumn);
+    }
+    if (current == '|' && next == '|') {
+        advance(); advance();
+        return makeToken(TokenType::TOK_LOGICAL_OR, "||", startLine, startColumn);
+    }
     if (current == '-' && next == '>') {
         advance(); advance();
         return makeToken(TokenType::TOK_ARROW, "->", startLine, startColumn);

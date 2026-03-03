@@ -2,7 +2,7 @@
   "name": "lwanga",
   "displayName": "Lwanga Language Support",
   "description": "Syntax highlighting, snippets, and language support for Lwanga - a security-focused systems programming language",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "cosmc-technologies",
   "icon": "icons/lwanga-file-128.png",
   "repository": {

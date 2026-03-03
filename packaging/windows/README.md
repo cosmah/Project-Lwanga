@@ -42,7 +42,7 @@ Complete guide for building and installing Lwanga on Windows.
 ### Download Installer
 ```powershell
 # Download from GitHub Releases (when available)
-Invoke-WebRequest -Uri "https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga-1.0.2-windows-x64-installer.exe" -OutFile "lwanga-installer.exe"
+Invoke-WebRequest -Uri "https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga-1.0.3-windows-x64-installer.exe" -OutFile "lwanga-installer.exe"
 
 # Run installer
 .\lwanga-installer.exe
@@ -124,7 +124,7 @@ $env:PATH += ";$PWD\build-windows\install\bin"
 cd packaging\windows
 makensis installer.nsi
 
-# Output: lwanga-1.0.2-windows-x64-installer.exe
+# Output: lwanga-1.0.3-windows-x64-installer.exe
 ```
 
 ## Using Lwanga on Windows
@@ -239,7 +239,7 @@ $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";"
 ### Visual Studio Code
 ```powershell
 # Install extension
-code --install-extension lwanga-1.0.2.vsix
+code --install-extension lwanga-1.0.3.vsix
 
 # Or from marketplace (when published)
 # Search for "Lwanga" in Extensions

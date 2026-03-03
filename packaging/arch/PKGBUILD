@@ -1,7 +1,7 @@
 # Maintainer: Cosmc Technologies <cosmahke4@gmail.com>
 
 pkgname=lwanga
-pkgver=1.0.2
+pkgver=1.0.3
 pkgrel=1
 pkgdesc="Security-focused systems programming language for shellcode and low-level development"
 arch=('x86_64' 'aarch64')

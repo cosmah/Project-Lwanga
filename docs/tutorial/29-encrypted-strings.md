@@ -260,7 +260,7 @@ let debug: ptr = "Debug: value = ";  // Plain is fine
 ❌ **Public Constants**
 ```lwanga
 // Don't encrypt public data
-let version: ptr = "1.0.2";  // Plain is fine
+let version: ptr = "1.0.3";  // Plain is fine
 ```
 
 ---
@@ -408,7 +408,7 @@ fn main() -> u64 {
 ```lwanga
 // WRONG: Encrypting non-sensitive strings
 let hello: ptr = enc "Hello, World!";  // Unnecessary
-let version: ptr = enc "1.0.2";        // Unnecessary
+let version: ptr = enc "1.0.3";        // Unnecessary
 ```
 
 **Fix:** Only encrypt sensitive data:

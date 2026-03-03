@@ -5,7 +5,7 @@
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="1.0.2"
+VERSION="1.0.3"
 
 echo "Building Lwanga v${VERSION} packages..."
 echo "Project root: ${PROJECT_ROOT}"

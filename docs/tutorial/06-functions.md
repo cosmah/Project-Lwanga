@@ -148,11 +148,11 @@ You can return from anywhere in a function:
 
 ```lwanga
 fn check_value(x: u64) -> u64 {
-    if x > 100 {
+    if (x > 100) {
         return 1;  // Early return
     }
     
-    if x > 50 {
+    if (x > 50) {
         return 2;  // Another early return
     }
     
@@ -243,7 +243,7 @@ fn process_data(data: ptr) -> u64 {
 ```lwanga
 fn process(count: u64, flag: u8, message: ptr) -> u64 {
     // Use the parameters
-    if flag == 1 {
+    if (flag == 1) {
         return count;
     }
     return 0;
@@ -265,7 +265,7 @@ fn subtract(a: u64, b: u64) -> u64 {
 
 fn main() -> u64 {
     let r1: u64 = subtract(10, 3);  // 7 (10 - 3)
-    let r2: u64 = subtract(3, 10);  // Underflow! (wraps around)
+    let r2: u64 = subtract(3, 10);  // Underflow! (wraps around to large number)
     
     return r1;
 }
@@ -281,9 +281,9 @@ fn main() -> u64 {
 
 ```lwanga
 fn greet() -> u64 {
-    let msg: ptr = "Hello!\n";
+    let msg: ptr = "Hello!";
     unsafe {
-        syscall(1, 1, msg, 7);
+        syscall(1, 1, msg, 6);
     }
     return 0;
 }
@@ -426,7 +426,7 @@ fn main() -> u64 {
 ```lwanga
 fn fahrenheit_to_celsius(f: u64) -> u64 {
     // C = (F - 32) * 5 / 9
-    if f < 32 {
+    if (f < 32) {
         return 0;  // Avoid underflow
     }
     
@@ -446,7 +446,7 @@ fn main() -> u64 {
 
 ```lwanga
 fn is_in_range(value: u64, min: u64, max: u64) -> u64 {
-    if value >= min && value <= max {
+    if (value >= min && value <= max) {
         return 1;  // True
     }
     return 0;  // False
@@ -464,7 +464,7 @@ fn main() -> u64 {
 
 ```lwanga
 fn max(a: u64, b: u64) -> u64 {
-    if a > b {
+    if (a > b) {
         return a;
     }
     return b;
@@ -483,14 +483,14 @@ fn main() -> u64 {
 
 ```lwanga
 fn factorial(n: u64) -> u64 {
-    if n == 0 || n == 1 {
+    if (n == 0 || n == 1) {
         return 1;
     }
     
     let mut result: u64 = 1;
     let mut i: u64 = 2;
     
-    while i <= n {
+    while (i <= n) {
         result = result * i;
         i = i + 1;
     }
@@ -513,7 +513,7 @@ fn main() -> u64 {
 ```lwanga
 fn add(a: u64, b: u64) -> u64 {
     let sum: u64 = a + b;
-    // ERROR: missing return statement
+    // ERROR: missing return statement - compiler requires explicit return
 }
 ```
 
@@ -541,20 +541,19 @@ fn add(a: u64, b: u64) -> u64 {
 
 ```lwanga
 fn get_value() -> u32 {
-    return 42;  // ERROR: 42 is u64 by default
+    let x: u64 = 42;
+    return x;  // ERROR: expected u32, got u64
 }
 ```
 
 **Fix:**
 ```lwanga
-fn get_value() -> u64 {
-    return 42;  // ✓ Correct
+fn get_value() -> u32 {
+    let x: u64 = 42;
+    return x as u32;  // ✓ Correct
 }
 
-// Or cast explicitly
-fn get_value_u32() -> u32 {
-    return 42 as u32;  // ✓ Correct
-}
+// Lwanga requires explicit casts between different integer sizes
 ```
 
 ### Mistake 3: Wrong Number of Arguments
@@ -633,7 +632,7 @@ Write a function that returns the smaller of two numbers.
 
 ```lwanga
 fn min(a: u64, b: u64) -> u64 {
-    if a < b {
+    if (a < b) {
         return a;
     }
     return b;
@@ -676,14 +675,14 @@ Write a function that calculates a^b (a to the power of b).
 
 ```lwanga
 fn power(base: u64, exponent: u64) -> u64 {
-    if exponent == 0 {
+    if (exponent == 0) {
         return 1;
     }
     
     let mut result: u64 = 1;
     let mut i: u64 = 0;
     
-    while i < exponent {
+    while (i < exponent) {
         result = result * base;
         i = i + 1;
     }
@@ -710,7 +709,7 @@ fn digit_sum(n: u64) -> u64 {
     let mut sum: u64 = 0;
     let mut num: u64 = n;
     
-    while num > 0 {
+    while (num > 0) {
         sum = sum + (num % 10);
         num = num / 10;
     }

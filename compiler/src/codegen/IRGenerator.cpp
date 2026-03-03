@@ -455,12 +455,22 @@ void IRGenerator::generateFunction(FunctionAST* func) {
 
 void IRGenerator::enterScope() {
     scopeStack.push_back(namedValues);
+    typeScopeStack.push_back(namedTypes);
+    pointeeScopeStack.push_back(pointeeTypes);
 }
 
 void IRGenerator::exitScope() {
     if (!scopeStack.empty()) {
         namedValues = scopeStack.back();
         scopeStack.pop_back();
+    }
+    if (!typeScopeStack.empty()) {
+        namedTypes = typeScopeStack.back();
+        typeScopeStack.pop_back();
+    }
+    if (!pointeeScopeStack.empty()) {
+        pointeeTypes = pointeeScopeStack.back();
+        pointeeScopeStack.pop_back();
     }
 }
 
@@ -790,15 +800,7 @@ void IRGenerator::generateAsm(AsmStmt* stmt) {
         outputAddrs.push_back(addr);
         
         // Determine type of the output variable
-        llvm::Type* varType = llvm::Type::getInt64Ty(*context); // Fallback
-        if (auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(addr)) {
-            varType = alloca->getAllocatedType();
-        } else if (addr->getType()->isPointerTy()) {
-            // Check if we can deduce type from namedTypes
-            if (auto* ident = dynamic_cast<IdentifierExpr*>(output.expr.get())) {
-                if (namedTypes.count(ident->name)) varType = namedTypes[ident->name];
-            }
-        }
+        llvm::Type* varType = resolveLValueType(output.expr.get());
         outputTypes.push_back(varType);
         
         // If it's an indirect (memory) output, it needs an argument
@@ -895,6 +897,48 @@ void IRGenerator::generateAsm(AsmStmt* stmt) {
             }
         }
     }
+}
+
+llvm::Type* IRGenerator::resolveLValueType(ExprAST* expr) {
+    if (auto* ident = dynamic_cast<IdentifierExpr*>(expr)) {
+        if (namedTypes.count(ident->name)) return namedTypes[ident->name];
+    }
+    if (auto* arrIdx = dynamic_cast<ArrayIndexExpr*>(expr)) {
+        if (auto* arrIdent = dynamic_cast<IdentifierExpr*>(arrIdx->array.get())) {
+            auto it = namedTypes.find(arrIdent->name);
+            if (it != namedTypes.end()) {
+                llvm::Type* type = it->second;
+                if (auto* arrType = llvm::dyn_cast<llvm::ArrayType>(type)) {
+                    return arrType->getElementType();
+                } else {
+                    auto pIt = pointeeTypes.find(arrIdent->name);
+                    if (pIt != pointeeTypes.end()) return pIt->second;
+                }
+            }
+        }
+    }
+    if (auto* field = dynamic_cast<FieldAccessExpr*>(expr)) {
+        llvm::Type* baseType = resolveLValueType(field->object.get());
+        if (baseType && baseType->isStructTy()) {
+            llvm::StructType* structType = llvm::cast<llvm::StructType>(baseType);
+            auto it = structDefinitions.find(structType->getName().str());
+            if (it != structDefinitions.end()) {
+                for (size_t i = 0; i < it->second->fields.size(); i++) {
+                    if (it->second->fields[i].name == field->fieldName) {
+                        return convertType(it->second->fields[i].type.get());
+                    }
+                }
+            }
+        }
+    }
+    
+    // Fallback to searching the alloca
+    llvm::Value* addr = generateLValueAddress(expr);
+    if (auto* alloca = llvm::dyn_cast_or_null<llvm::AllocaInst>(addr)) {
+        return alloca->getAllocatedType();
+    }
+    
+    return llvm::Type::getInt64Ty(*context);
 }
 
 llvm::Value* IRGenerator::generateExpression(ExprAST* expr) {
@@ -1096,18 +1140,76 @@ llvm::Value* IRGenerator::generateBinary(BinaryExpr* expr) {
             return builder->CreateShl(left, right, "shltmp");
         case BinaryOp::RightShift:
             return builder->CreateLShr(left, right, "shrtmp");
-        case BinaryOp::Equal:
-            return builder->CreateICmpEQ(left, right, "eqtmp");
-        case BinaryOp::NotEqual:
-            return builder->CreateICmpNE(left, right, "netmp");
-        case BinaryOp::Less:
-            return builder->CreateICmpULT(left, right, "lttmp");
-        case BinaryOp::Greater:
-            return builder->CreateICmpUGT(left, right, "gttmp");
-        case BinaryOp::LessEqual:
-            return builder->CreateICmpULE(left, right, "letmp");
-        case BinaryOp::GreaterEqual:
-            return builder->CreateICmpUGE(left, right, "getmp");
+        case BinaryOp::Equal: {
+            llvm::Value* cmp = builder->CreateICmpEQ(left, right, "eqtmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
+        case BinaryOp::NotEqual: {
+            llvm::Value* cmp = builder->CreateICmpNE(left, right, "netmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
+        case BinaryOp::Less: {
+            llvm::Value* cmp = builder->CreateICmpULT(left, right, "lttmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
+        case BinaryOp::Greater: {
+            llvm::Value* cmp = builder->CreateICmpUGT(left, right, "gttmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
+        case BinaryOp::LessEqual: {
+            llvm::Value* cmp = builder->CreateICmpULE(left, right, "letmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
+        case BinaryOp::GreaterEqual: {
+            llvm::Value* cmp = builder->CreateICmpUGE(left, right, "getmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
+        case BinaryOp::LogicalAnd: {
+            // Short-circuit logical AND
+            llvm::Function* fn = builder->GetInsertBlock()->getParent();
+            llvm::BasicBlock* rhsBlock = llvm::BasicBlock::Create(*context, "and.rhs", fn);
+            llvm::BasicBlock* contBlock = llvm::BasicBlock::Create(*context, "and.cont", fn);
+            
+            llvm::Value* leftNonZero = builder->CreateICmpNE(left, llvm::ConstantInt::get(left->getType(), 0), "lnz");
+            llvm::BasicBlock* lhsBB = builder->GetInsertBlock();
+            builder->CreateCondBr(leftNonZero, rhsBlock, contBlock);
+            
+            builder->SetInsertPoint(rhsBlock);
+            llvm::Value* rightVal = generateExpression(expr->right.get());
+            llvm::Value* rightNonZero = builder->CreateICmpNE(rightVal, llvm::ConstantInt::get(rightVal->getType(), 0), "rnz");
+            llvm::BasicBlock* actualRhsBB = builder->GetInsertBlock();
+            builder->CreateBr(contBlock);
+            
+            builder->SetInsertPoint(contBlock);
+            llvm::PHINode* phi = builder->CreatePHI(llvm::Type::getInt1Ty(*context), 2, "andphi");
+            phi->addIncoming(builder->getFalse(), lhsBB);
+            phi->addIncoming(rightNonZero, actualRhsBB);
+            return builder->CreateZExt(phi, llvm::Type::getInt64Ty(*context), "landtmp");
+        }
+        case BinaryOp::LogicalOr: {
+            // Short-circuit logical OR
+            llvm::Function* fn = builder->GetInsertBlock()->getParent();
+            llvm::BasicBlock* rhsBlock = llvm::BasicBlock::Create(*context, "or.rhs", fn);
+            llvm::BasicBlock* contBlock = llvm::BasicBlock::Create(*context, "or.cont", fn);
+            
+            llvm::Value* leftNonZero = builder->CreateICmpNE(left, llvm::ConstantInt::get(left->getType(), 0), "lnz");
+            llvm::BasicBlock* lhsBB = builder->GetInsertBlock();
+            builder->CreateCondBr(leftNonZero, contBlock, rhsBlock);
+            
+            builder->SetInsertPoint(rhsBlock);
+            llvm::Value* rightVal = generateExpression(expr->right.get());
+            llvm::Value* rightNonZero = builder->CreateICmpNE(rightVal, llvm::ConstantInt::get(rightVal->getType(), 0), "rnz");
+            llvm::BasicBlock* actualRhsBB = builder->GetInsertBlock();
+            builder->CreateBr(contBlock);
+            
+            builder->SetInsertPoint(contBlock);
+            llvm::PHINode* phi = builder->CreatePHI(llvm::Type::getInt1Ty(*context), 2, "orphi");
+            phi->addIncoming(builder->getTrue(), lhsBB);
+            phi->addIncoming(rightNonZero, actualRhsBB);
+            return builder->CreateZExt(phi, llvm::Type::getInt64Ty(*context), "lortmp");
+        }
+        default:
+            break;
     }
     
     return nullptr;
@@ -1590,7 +1692,7 @@ llvm::Value* IRGenerator::generateFieldAddress(FieldAccessExpr* expr) {
 
 llvm::Value* IRGenerator::generateArrayElementAddress(ArrayIndexExpr* expr) {
     llvm::Value* arrayPtr = nullptr;
-    llvm::Type* elementType = llvm::Type::getInt8Ty(*context);
+    llvm::Type* elementType = nullptr;
     
     // Check if it's a direct array variable access
     if (auto* ident = dynamic_cast<IdentifierExpr*>(expr->array.get())) {
@@ -1628,6 +1730,19 @@ llvm::Value* IRGenerator::generateArrayElementAddress(ArrayIndexExpr* expr) {
     // Fallback for general expressions (e.g. results of calls or pointer arithmetic)
     if (!arrayPtr) {
         arrayPtr = generateExpression(expr->array.get());
+    }
+    
+    // If still no element type, try to resolve it from the expression
+    if (!elementType) {
+        // As a last resort for generic ptr, default to i8 but only if it's actually a pointer
+        if (arrayPtr->getType()->isPointerTy()) {
+            elementType = llvm::Type::getInt8Ty(*context);
+        }
+    }
+    
+    if (!elementType) {
+        reportError("Cannot determine element type for array indexing");
+        return nullptr;
     }
     
     llvm::Value* index = generateExpression(expr->index.get());
@@ -1722,6 +1837,12 @@ llvm::Constant* IRGenerator::evaluateConstantExpression(ExprAST* expr) {
                 return llvm::ConstantExpr::getICmp(llvm::CmpInst::ICMP_ULE, left, right);
             case BinaryOp::GreaterEqual:
                 return llvm::ConstantExpr::getICmp(llvm::CmpInst::ICMP_UGE, left, right);
+            case BinaryOp::LogicalAnd:
+                result = (leftVal != 0 && rightVal != 0) ? 1 : 0;
+                return llvm::ConstantInt::get(leftInt->getType(), result);
+            case BinaryOp::LogicalOr:
+                result = (leftVal != 0 || rightVal != 0) ? 1 : 0;
+                return llvm::ConstantInt::get(leftInt->getType(), result);
         }
     }
     

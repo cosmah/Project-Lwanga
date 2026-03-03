@@ -333,7 +333,7 @@ lwangac --version
 
 You should see:
 ```
-Lwanga Compiler v1.0.2
+Lwanga Compiler v1.0.3
 ```
 
 ### 3. Choose an Editor

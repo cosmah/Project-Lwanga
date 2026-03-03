@@ -62,12 +62,20 @@ std::unique_ptr<ProgramAST> ModuleLoader::loadSingleModule(const std::string& fi
     // Read the source file
     std::string source = readFile(filePath);
     if (source.empty() && !errors.empty()) {
+        loadingModules.erase(filePath);
         return nullptr;
     }
     
     // Preprocess the source
     Preprocessor preprocessor(source);
-    std::string preprocessedSource = preprocessor.process();
+    std::string preprocessedSource;
+    try {
+        preprocessedSource = preprocessor.process();
+    } catch (const std::runtime_error& e) {
+        reportError(filePath + ": Preprocessor error: " + std::string(e.what()));
+        loadingModules.erase(filePath);
+        return nullptr;
+    }
     
     // Create lexer and parser
     Lexer lexer(preprocessedSource);
@@ -120,8 +128,13 @@ std::string ModuleLoader::resolveModulePath(const std::string& importPath,
         std::string pathStr(envPath);
         std::stringstream ss(pathStr);
         std::string segment;
-        
-        while (std::getline(ss, segment, ':')) {
+        char sep;
+#ifdef _WIN32
+        sep = ';';
+#else
+        sep = ':';
+#endif
+        while (std::getline(ss, segment, sep)) {
             std::filesystem::path searchPath = std::filesystem::path(segment) / importPath;
             if (std::filesystem::exists(searchPath)) {
                 return std::filesystem::absolute(searchPath).string();

@@ -26,7 +26,8 @@ enum class BinaryOp {
     Add, Sub, Mul, Div, Mod,
     BitAnd, BitOr, BitXor,
     LeftShift, RightShift,
-    Equal, NotEqual, Less, Greater, LessEqual, GreaterEqual
+    Equal, NotEqual, Less, Greater, LessEqual, GreaterEqual,
+    LogicalAnd, LogicalOr
 };
 
 // Unary operators
@@ -327,9 +328,10 @@ public:
 struct Parameter {
     std::string name;
     std::unique_ptr<Type> type;
+    SourceLocation loc;
     
-    Parameter(const std::string& n, std::unique_ptr<Type> t)
-        : name(n), type(std::move(t)) {}
+    Parameter(const std::string& n, std::unique_ptr<Type> t, SourceLocation l = SourceLocation())
+        : name(n), type(std::move(t)), loc(l) {}
 };
 
 // Function definition
@@ -352,9 +354,10 @@ public:
 struct StructField {
     std::string name;
     std::unique_ptr<Type> type;
+    SourceLocation loc;
     
-    StructField(const std::string& n, std::unique_ptr<Type> t)
-        : name(n), type(std::move(t)) {}
+    StructField(const std::string& n, std::unique_ptr<Type> t, SourceLocation l = SourceLocation())
+        : name(n), type(std::move(t)), loc(l) {}
 };
 
 // Struct definition

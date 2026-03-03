@@ -136,9 +136,14 @@ bool TypeChecker::checkCircularStruct(const std::string& name, std::vector<std::
     
     StructAST* structDef = it->second;
     for (const auto& field : structDef->fields) {
+        if (!field.type) {
+            reportError("Invalid field type in struct '" + structDef->name + "'", field.loc.line, field.loc.column);
+            continue;
+        }
         // Only direct struct members (not pointers) can cause infinite size
         if (field.type->kind == TypeKind::Struct) {
             if (checkCircularStruct(field.type->structName, path)) {
+                path.pop_back();
                 return true;
             }
         } else if (field.type->kind == TypeKind::Array) {
@@ -147,6 +152,7 @@ bool TypeChecker::checkCircularStruct(const std::string& name, std::vector<std::
             while (elem && elem->kind == TypeKind::Array) elem = elem->elementType.get();
             if (elem && elem->kind == TypeKind::Struct) {
                 if (checkCircularStruct(elem->structName, path)) {
+                    path.pop_back();
                     return true;
                 }
             }
@@ -186,7 +192,8 @@ void TypeChecker::checkFunction(FunctionAST* func) {
         );
         
         if (!symbolTable.define(param.name, std::move(symbol))) {
-            reportError("Parameter '" + param.name + "' already defined");
+            reportError("Parameter '" + param.name + "' already defined",
+                       param.loc.line, param.loc.column);
         }
     }
     
@@ -307,7 +314,7 @@ void TypeChecker::checkIf(IfStmt* stmt) {
     // Check condition
     Type* condType = checkExpression(stmt->condition.get());
     if (condType && !TypeSystem::isNumericType(condType)) {
-        reportError("If condition must be numeric type");
+        reportError("If condition must be numeric type", stmt->loc.line, stmt->loc.column);
     }
     
     // Check then block
@@ -331,7 +338,7 @@ void TypeChecker::checkWhile(WhileStmt* stmt) {
     // Check condition
     Type* condType = checkExpression(stmt->condition.get());
     if (condType && !TypeSystem::isNumericType(condType)) {
-        reportError("While condition must be numeric type");
+        reportError("While condition must be numeric type", stmt->loc.line, stmt->loc.column);
     }
     
     // Check body
@@ -344,7 +351,7 @@ void TypeChecker::checkWhile(WhileStmt* stmt) {
 
 void TypeChecker::checkReturn(ReturnStmt* stmt) {
     if (!currentFunction) {
-        reportError("Return statement outside of function");
+        reportError("Return statement outside of function", stmt->loc.line, stmt->loc.column);
         return;
     }
     
@@ -353,7 +360,8 @@ void TypeChecker::checkReturn(ReturnStmt* stmt) {
         if (returnType && !TypeSystem::areTypesCompatible(currentFunction->returnType.get(), returnType)) {
             reportError("Return type mismatch: expected " +
                        TypeSystem::typeToString(currentFunction->returnType.get()) + ", got " +
-                       TypeSystem::typeToString(returnType));
+                       TypeSystem::typeToString(returnType),
+                       stmt->loc.line, stmt->loc.column);
         }
     }
 }
@@ -523,7 +531,8 @@ Type* TypeChecker::checkCall(CallExpr* expr) {
         if (argType && !TypeSystem::areTypesCompatible(calleeType->paramTypes[i].get(), argType)) {
             reportError("Argument " + std::to_string(i + 1) + " type mismatch: expected " +
                        TypeSystem::typeToString(calleeType->paramTypes[i].get()) + ", got " +
-                       TypeSystem::typeToString(argType));
+                       TypeSystem::typeToString(argType),
+                       expr->args[i]->loc.line, expr->args[i]->loc.column);
         }
     }
     
@@ -613,7 +622,7 @@ Type* TypeChecker::checkFieldAccess(FieldAccessExpr* expr) {
     }
     
     if (objectType->kind != TypeKind::Struct) {
-        reportError("Field access on non-struct type");
+        reportError("Field access on non-struct type", expr->loc.line, expr->loc.column);
         return nullptr;
     }
     

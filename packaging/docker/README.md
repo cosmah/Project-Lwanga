@@ -87,11 +87,11 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 
 ```bash
 # Tag
-docker tag lwanga:latest cosmctechnologies/lwanga:1.0.2
+docker tag lwanga:latest cosmctechnologies/lwanga:1.0.3
 docker tag lwanga:latest cosmctechnologies/lwanga:latest
 
 # Push
-docker push cosmctechnologies/lwanga:1.0.2
+docker push cosmctechnologies/lwanga:1.0.3
 docker push cosmctechnologies/lwanga:latest
 ```
 

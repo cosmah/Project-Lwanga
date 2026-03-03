@@ -47,7 +47,7 @@ Official VS Code extension for the Lwanga programming language - a security-focu
 
 ### From VSIX
 ```bash
-code --install-extension lwanga-1.0.2.vsix
+code --install-extension lwanga-1.0.3.vsix
 ```
 
 ### From Source
@@ -56,7 +56,7 @@ cd extensions/vscode
 npm install
 npm run compile
 npm run package
-code --install-extension lwanga-1.0.2.vsix
+code --install-extension lwanga-1.0.3.vsix
 ```
 
 ## Configuration
