@@ -230,6 +230,7 @@ std::unique_ptr<StructAST> Parser::parseStruct(bool isPacked) {
             break;
         }
         
+        SourceLocation fieldLoc(currentToken.line, currentToken.column);
         std::string fieldName = currentToken.lexeme;
         advance();
         
@@ -237,7 +238,7 @@ std::unique_ptr<StructAST> Parser::parseStruct(bool isPacked) {
         
         auto fieldType = parseType();
         
-        fields.push_back(StructField(fieldName, std::move(fieldType)));
+        fields.push_back(StructField(fieldName, std::move(fieldType), fieldLoc));
         
         if (!match(TokenType::TOK_COMMA)) {
             break;

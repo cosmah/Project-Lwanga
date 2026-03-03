@@ -137,7 +137,7 @@ bool TypeChecker::checkCircularStruct(const std::string& name, std::vector<std::
     StructAST* structDef = it->second;
     for (const auto& field : structDef->fields) {
         if (!field.type) {
-            reportError("Invalid field type in struct '" + structDef->name + "'", field.loc);
+            reportError("Invalid field type in struct '" + structDef->name + "'", field.loc.line, field.loc.column);
             continue;
         }
         // Only direct struct members (not pointers) can cause infinite size
@@ -314,7 +314,7 @@ void TypeChecker::checkIf(IfStmt* stmt) {
     // Check condition
     Type* condType = checkExpression(stmt->condition.get());
     if (condType && !TypeSystem::isNumericType(condType)) {
-        reportError("If condition must be numeric type");
+        reportError("If condition must be numeric type", stmt->loc.line, stmt->loc.column);
     }
     
     // Check then block
@@ -338,7 +338,7 @@ void TypeChecker::checkWhile(WhileStmt* stmt) {
     // Check condition
     Type* condType = checkExpression(stmt->condition.get());
     if (condType && !TypeSystem::isNumericType(condType)) {
-        reportError("While condition must be numeric type");
+        reportError("While condition must be numeric type", stmt->loc.line, stmt->loc.column);
     }
     
     // Check body
@@ -351,7 +351,7 @@ void TypeChecker::checkWhile(WhileStmt* stmt) {
 
 void TypeChecker::checkReturn(ReturnStmt* stmt) {
     if (!currentFunction) {
-        reportError("Return statement outside of function");
+        reportError("Return statement outside of function", stmt->loc.line, stmt->loc.column);
         return;
     }
     
@@ -622,7 +622,7 @@ Type* TypeChecker::checkFieldAccess(FieldAccessExpr* expr) {
     }
     
     if (objectType->kind != TypeKind::Struct) {
-        reportError("Field access on non-struct type");
+        reportError("Field access on non-struct type", expr->loc.line, expr->loc.column);
         return nullptr;
     }
     

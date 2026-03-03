@@ -1140,18 +1140,30 @@ llvm::Value* IRGenerator::generateBinary(BinaryExpr* expr) {
             return builder->CreateShl(left, right, "shltmp");
         case BinaryOp::RightShift:
             return builder->CreateLShr(left, right, "shrtmp");
-        case BinaryOp::Equal:
-            return builder->CreateICmpEQ(left, right, "eqtmp");
-        case BinaryOp::NotEqual:
-            return builder->CreateICmpNE(left, right, "netmp");
-        case BinaryOp::Less:
-            return builder->CreateICmpULT(left, right, "lttmp");
-        case BinaryOp::Greater:
-            return builder->CreateICmpUGT(left, right, "gttmp");
-        case BinaryOp::LessEqual:
-            return builder->CreateICmpULE(left, right, "letmp");
-        case BinaryOp::GreaterEqual:
-            return builder->CreateICmpUGE(left, right, "getmp");
+        case BinaryOp::Equal: {
+            llvm::Value* cmp = builder->CreateICmpEQ(left, right, "eqtmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
+        case BinaryOp::NotEqual: {
+            llvm::Value* cmp = builder->CreateICmpNE(left, right, "netmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
+        case BinaryOp::Less: {
+            llvm::Value* cmp = builder->CreateICmpULT(left, right, "lttmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
+        case BinaryOp::Greater: {
+            llvm::Value* cmp = builder->CreateICmpUGT(left, right, "gttmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
+        case BinaryOp::LessEqual: {
+            llvm::Value* cmp = builder->CreateICmpULE(left, right, "letmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
+        case BinaryOp::GreaterEqual: {
+            llvm::Value* cmp = builder->CreateICmpUGE(left, right, "getmp");
+            return builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*context), "booltmp");
+        }
         case BinaryOp::LogicalAnd: {
             // Short-circuit logical AND
             llvm::Function* fn = builder->GetInsertBlock()->getParent();

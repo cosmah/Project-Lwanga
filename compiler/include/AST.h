@@ -354,9 +354,10 @@ public:
 struct StructField {
     std::string name;
     std::unique_ptr<Type> type;
+    SourceLocation loc;
     
-    StructField(const std::string& n, std::unique_ptr<Type> t)
-        : name(n), type(std::move(t)) {}
+    StructField(const std::string& n, std::unique_ptr<Type> t, SourceLocation l = SourceLocation())
+        : name(n), type(std::move(t)), loc(l) {}
 };
 
 // Struct definition
