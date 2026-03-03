@@ -5,6 +5,25 @@ All notable changes to the Lwanga programming language will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-03-03
+
+### Added
+- Logical AND (`&&`) and Logical OR (`||`) operators for proper boolean logic
+- Precise SourceLocation tracking for all AST expression nodes
+- Error messages now show exact line and column numbers for all type checking failures
+
+### Fixed
+- **Error Location Info**: Arguments, parameters, identifiers, and binary operators now report exact source positions
+- **Type Error Messages**: All type mismatches now display `error[E#]: message` with line:column pointers
+- **Duplicate Parameters**: Now correctly reports location of duplicate parameter name
+- **Argument Mismatches**: Function call argument type errors now pinpoint the exact argument location
+- **Undefined Identifiers**: Show precise location with "Did you mean?" suggestions
+- **Function Tutorial**: Fixed all example code that was using unsupported `&&` operator without proper parentheses
+
+### Changed
+- Parser now captures location info during creation of all primary expressions (literals, identifiers)
+- Parameter struct now includes SourceLocation field for better error reporting
+
 ## [1.0.2] - 2026-02-24
 
 ### Added

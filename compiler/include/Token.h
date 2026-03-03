@@ -68,6 +68,8 @@ enum class TokenType {
     TOK_GREATER_EQUAL,  // >=
     TOK_ASSIGN,         // =
     TOK_NOT,            // !
+    TOK_LOGICAL_AND,    // &&
+    TOK_LOGICAL_OR,     // ||
     TOK_ARROW,          // ->
     
     // Delimiters

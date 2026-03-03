@@ -26,7 +26,8 @@ enum class BinaryOp {
     Add, Sub, Mul, Div, Mod,
     BitAnd, BitOr, BitXor,
     LeftShift, RightShift,
-    Equal, NotEqual, Less, Greater, LessEqual, GreaterEqual
+    Equal, NotEqual, Less, Greater, LessEqual, GreaterEqual,
+    LogicalAnd, LogicalOr
 };
 
 // Unary operators

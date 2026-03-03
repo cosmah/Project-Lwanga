@@ -54,6 +54,8 @@ const char* tokenTypeToString(TokenType type) {
         case TokenType::TOK_GREATER_EQUAL: return ">=";
         case TokenType::TOK_ASSIGN: return "=";
         case TokenType::TOK_NOT: return "!";
+        case TokenType::TOK_LOGICAL_AND: return "&&";
+        case TokenType::TOK_LOGICAL_OR: return "||";
         case TokenType::TOK_ARROW: return "->";
         
         // Delimiters

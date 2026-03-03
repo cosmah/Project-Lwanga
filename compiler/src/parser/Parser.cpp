@@ -658,6 +658,10 @@ int Parser::getOperatorPrecedence(TokenType type) const {
             return 4;
         case TokenType::TOK_PIPE:
             return 3;
+        case TokenType::TOK_LOGICAL_AND:
+            return 2;
+        case TokenType::TOK_LOGICAL_OR:
+            return 1;
         case TokenType::TOK_AS:
             return 2;
         default:
@@ -683,6 +687,8 @@ BinaryOp Parser::tokenToBinaryOp(TokenType type) const {
         case TokenType::TOK_GREATER: return BinaryOp::Greater;
         case TokenType::TOK_LESS_EQUAL: return BinaryOp::LessEqual;
         case TokenType::TOK_GREATER_EQUAL: return BinaryOp::GreaterEqual;
+        case TokenType::TOK_LOGICAL_AND: return BinaryOp::LogicalAnd;
+        case TokenType::TOK_LOGICAL_OR: return BinaryOp::LogicalOr;
         default:
             throw std::runtime_error("Invalid binary operator");
     }

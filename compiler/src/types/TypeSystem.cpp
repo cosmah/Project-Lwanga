@@ -333,6 +333,14 @@ std::unique_ptr<Type> TypeSystem::getBinaryOpResultType(const Type* left, const 
                 return Type::makeU64();
             }
             break;
+            
+        case BinaryOp::LogicalAnd:
+        case BinaryOp::LogicalOr:
+            // Logical operations require numeric types and return u64 (boolean)
+            if (isNumericType(left) && isNumericType(right)) {
+                return Type::makeU64();
+            }
+            break;
     }
     
     return nullptr;

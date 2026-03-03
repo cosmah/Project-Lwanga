@@ -1108,6 +1108,22 @@ llvm::Value* IRGenerator::generateBinary(BinaryExpr* expr) {
             return builder->CreateICmpULE(left, right, "letmp");
         case BinaryOp::GreaterEqual:
             return builder->CreateICmpUGE(left, right, "getmp");
+        case BinaryOp::LogicalAnd: {
+            // Logical AND: left && right returns 1 if both non-zero, 0 otherwise
+            llvm::Value* leftNonZero = builder->CreateICmpNE(left, llvm::ConstantInt::get(left->getType(), 0), "lnz");
+            llvm::Value* rightNonZero = builder->CreateICmpNE(right, llvm::ConstantInt::get(right->getType(), 0), "rnz");
+            llvm::Value* andResult = builder->CreateAnd(leftNonZero, rightNonZero, "andlogical");
+            return builder->CreateZExt(andResult, llvm::Type::getInt64Ty(*context), "landtmp");
+        }
+        case BinaryOp::LogicalOr: {
+            // Logical OR: left || right returns 1 if either non-zero, 0 otherwise
+            llvm::Value* leftNonZero = builder->CreateICmpNE(left, llvm::ConstantInt::get(left->getType(), 0), "lnz");
+            llvm::Value* rightNonZero = builder->CreateICmpNE(right, llvm::ConstantInt::get(right->getType(), 0), "rnz");
+            llvm::Value* orResult = builder->CreateOr(leftNonZero, rightNonZero, "orlogical");
+            return builder->CreateZExt(orResult, llvm::Type::getInt64Ty(*context), "lortmp");
+        }
+        default:
+            break;
     }
     
     return nullptr;
