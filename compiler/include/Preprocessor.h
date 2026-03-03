@@ -12,6 +12,7 @@ namespace lwanga {
 struct DirectiveInfo {
     std::string type;
     uint32_t line;
+    bool sawElse;
 };
 
 class Preprocessor {

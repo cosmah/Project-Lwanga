@@ -802,50 +802,6 @@ void IRGenerator::generateAsm(AsmStmt* stmt) {
         // Determine type of the output variable
         llvm::Type* varType = resolveLValueType(output.expr.get());
         outputTypes.push_back(varType);
-
-// ...existing code...
-
-llvm::Type* IRGenerator::resolveLValueType(ExprAST* expr) {
-    if (auto* ident = dynamic_cast<IdentifierExpr*>(expr)) {
-        if (namedTypes.count(ident->name)) return namedTypes[ident->name];
-    }
-    if (auto* arrIdx = dynamic_cast<ArrayIndexExpr*>(expr)) {
-        if (auto* arrIdent = dynamic_cast<IdentifierExpr*>(arrIdx->array.get())) {
-            auto it = namedTypes.find(arrIdent->name);
-            if (it != namedTypes.end()) {
-                llvm::Type* type = it->second;
-                if (auto* arrType = llvm::dyn_cast<llvm::ArrayType>(type)) {
-                    return arrType->getElementType();
-                } else {
-                    auto pIt = pointeeTypes.find(arrIdent->name);
-                    if (pIt != pointeeTypes.end()) return pIt->second;
-                }
-            }
-        }
-    }
-    if (auto* field = dynamic_cast<FieldAccessExpr*>(expr)) {
-        llvm::Type* baseType = resolveLValueType(field->object.get());
-        if (baseType && baseType->isStructTy()) {
-            llvm::StructType* structType = llvm::cast<llvm::StructType>(baseType);
-            auto it = structDefinitions.find(structType->getName().str());
-            if (it != structDefinitions.end()) {
-                for (size_t i = 0; i < it->second->fields.size(); i++) {
-                    if (it->second->fields[i].name == field->fieldName) {
-                        return convertType(it->second->fields[i].type.get());
-                    }
-                }
-            }
-        }
-    }
-    
-    // Fallback to searching the alloca
-    llvm::Value* addr = generateLValueAddress(expr);
-    if (auto* alloca = llvm::dyn_cast_or_null<llvm::AllocaInst>(addr)) {
-        return alloca->getAllocatedType();
-    }
-    
-    return llvm::Type::getInt64Ty(*context);
-}
         
         // If it's an indirect (memory) output, it needs an argument
         if (output.constraint.find("*m") != std::string::npos) {
@@ -941,6 +897,48 @@ llvm::Type* IRGenerator::resolveLValueType(ExprAST* expr) {
             }
         }
     }
+}
+
+llvm::Type* IRGenerator::resolveLValueType(ExprAST* expr) {
+    if (auto* ident = dynamic_cast<IdentifierExpr*>(expr)) {
+        if (namedTypes.count(ident->name)) return namedTypes[ident->name];
+    }
+    if (auto* arrIdx = dynamic_cast<ArrayIndexExpr*>(expr)) {
+        if (auto* arrIdent = dynamic_cast<IdentifierExpr*>(arrIdx->array.get())) {
+            auto it = namedTypes.find(arrIdent->name);
+            if (it != namedTypes.end()) {
+                llvm::Type* type = it->second;
+                if (auto* arrType = llvm::dyn_cast<llvm::ArrayType>(type)) {
+                    return arrType->getElementType();
+                } else {
+                    auto pIt = pointeeTypes.find(arrIdent->name);
+                    if (pIt != pointeeTypes.end()) return pIt->second;
+                }
+            }
+        }
+    }
+    if (auto* field = dynamic_cast<FieldAccessExpr*>(expr)) {
+        llvm::Type* baseType = resolveLValueType(field->object.get());
+        if (baseType && baseType->isStructTy()) {
+            llvm::StructType* structType = llvm::cast<llvm::StructType>(baseType);
+            auto it = structDefinitions.find(structType->getName().str());
+            if (it != structDefinitions.end()) {
+                for (size_t i = 0; i < it->second->fields.size(); i++) {
+                    if (it->second->fields[i].name == field->fieldName) {
+                        return convertType(it->second->fields[i].type.get());
+                    }
+                }
+            }
+        }
+    }
+    
+    // Fallback to searching the alloca
+    llvm::Value* addr = generateLValueAddress(expr);
+    if (auto* alloca = llvm::dyn_cast_or_null<llvm::AllocaInst>(addr)) {
+        return alloca->getAllocatedType();
+    }
+    
+    return llvm::Type::getInt64Ty(*context);
 }
 
 llvm::Value* IRGenerator::generateExpression(ExprAST* expr) {
@@ -1682,7 +1680,7 @@ llvm::Value* IRGenerator::generateFieldAddress(FieldAccessExpr* expr) {
 
 llvm::Value* IRGenerator::generateArrayElementAddress(ArrayIndexExpr* expr) {
     llvm::Value* arrayPtr = nullptr;
-    llvm::Type* elementType = llvm::Type::getInt8Ty(*context);
+    llvm::Type* elementType = nullptr;
     
     // Check if it's a direct array variable access
     if (auto* ident = dynamic_cast<IdentifierExpr*>(expr->array.get())) {
@@ -1720,6 +1718,19 @@ llvm::Value* IRGenerator::generateArrayElementAddress(ArrayIndexExpr* expr) {
     // Fallback for general expressions (e.g. results of calls or pointer arithmetic)
     if (!arrayPtr) {
         arrayPtr = generateExpression(expr->array.get());
+    }
+    
+    // If still no element type, try to resolve it from the expression
+    if (!elementType) {
+        // As a last resort for generic ptr, default to i8 but only if it's actually a pointer
+        if (arrayPtr->getType()->isPointerTy()) {
+            elementType = llvm::Type::getInt8Ty(*context);
+        }
+    }
+    
+    if (!elementType) {
+        reportError("Cannot determine element type for array indexing");
+        return nullptr;
     }
     
     llvm::Value* index = generateExpression(expr->index.get());

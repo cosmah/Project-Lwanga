@@ -136,6 +136,10 @@ bool TypeChecker::checkCircularStruct(const std::string& name, std::vector<std::
     
     StructAST* structDef = it->second;
     for (const auto& field : structDef->fields) {
+        if (!field.type) {
+            reportError("Invalid field type in struct '" + structDef->name + "'", field.loc);
+            continue;
+        }
         // Only direct struct members (not pointers) can cause infinite size
         if (field.type->kind == TypeKind::Struct) {
             if (checkCircularStruct(field.type->structName, path)) {

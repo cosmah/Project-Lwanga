@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Logical AND (`&&`) and Logical OR (`||`) operators for proper boolean logic
 - Precise SourceLocation tracking for all AST expression nodes
-- Error messages now show exact line and column numbers for all type checking failures
+- Error messages now show exact line and column numbers for all type-checking failures
 
 ### Fixed
 - **Error Location Info**: Arguments, parameters, identifiers, and binary operators now report exact source positions

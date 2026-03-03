@@ -23,6 +23,16 @@
 #include <llvm/Transforms/Utils/Local.h>
 #include <system_error>
 #include <cstdlib>
+#include <cstring>
+#include <sstream>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#endif
 
 namespace lwanga {
 
@@ -358,7 +368,30 @@ bool Backend::generateExecutable(const std::string& filename) {
     std::string cmdLine;
     for (size_t i = 0; i < args.size(); ++i) {
         if (i > 0) cmdLine += " ";
-        cmdLine += '"' + args[i] + '"';
+        std::string arg = args[i];
+        bool needsQuotes = arg.empty() || arg.find_first_of(" \t\n\v\"") != std::string::npos;
+        if (needsQuotes) {
+            cmdLine += '"';
+            for (size_t j = 0; j < arg.length(); ++j) {
+                size_t backslashes = 0;
+                while (j < arg.length() && arg[j] == '\\') {
+                    backslashes++;
+                    j++;
+                }
+                if (j == arg.length()) {
+                    for (size_t k = 0; k < backslashes * 2; ++k) cmdLine += '\\';
+                } else if (arg[j] == '"') {
+                    for (size_t k = 0; k < backslashes * 2 + 1; ++k) cmdLine += '\\';
+                    cmdLine += '"';
+                } else {
+                    for (size_t k = 0; k < backslashes; ++k) cmdLine += '\\';
+                    cmdLine += arg[j];
+                }
+            }
+            cmdLine += '"';
+        } else {
+            cmdLine += arg;
+        }
     }
     STARTUPINFOA si = { sizeof(si) };
     PROCESS_INFORMATION pi;
@@ -379,11 +412,13 @@ bool Backend::generateExecutable(const std::string& filename) {
     if (pid == 0) {
         execvp(argv[0], argv.data());
         _exit(127);
+    } else if (pid < 0) {
+        setError("Failed to fork linker process: " + std::string(strerror(errno)));
+        std::remove(objFile.c_str());
+        return false;
     }
     int status = 0;
-    if (pid > 0) {
-        waitpid(pid, &status, 0);
-    }
+    waitpid(pid, &status, 0);
     int result = WIFEXITED(status) ? WEXITSTATUS(status) : status;
 #endif
     std::remove(objFile.c_str());

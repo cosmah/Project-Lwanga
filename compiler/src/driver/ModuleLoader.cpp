@@ -62,6 +62,7 @@ std::unique_ptr<ProgramAST> ModuleLoader::loadSingleModule(const std::string& fi
     // Read the source file
     std::string source = readFile(filePath);
     if (source.empty() && !errors.empty()) {
+        loadingModules.erase(filePath);
         return nullptr;
     }
     
@@ -72,6 +73,7 @@ std::unique_ptr<ProgramAST> ModuleLoader::loadSingleModule(const std::string& fi
         preprocessedSource = preprocessor.process();
     } catch (const std::runtime_error& e) {
         reportError(filePath + ": Preprocessor error: " + std::string(e.what()));
+        loadingModules.erase(filePath);
         return nullptr;
     }
     

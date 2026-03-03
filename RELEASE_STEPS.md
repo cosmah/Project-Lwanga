@@ -29,10 +29,11 @@ sha256sum lwanga_1.0.3-1_*.deb > lwanga_1.0.3-1_$(dpkg --print-architecture).deb
    
    ## Installation
    
-   ### Debian/Ubuntu
+   ### Debian/Ubuntu (x64/ARM64)
    ```bash
-   wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_amd64.deb
-   sudo dpkg -i lwanga_1.0.3-1_amd64.deb
+   ARCH="$(dpkg --print-architecture)"
+   wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_${ARCH}.deb
+   sudo dpkg -i lwanga_1.0.3-1_${ARCH}.deb
    sudo apt-get install -f
    ```
    
@@ -52,8 +53,8 @@ sha256sum lwanga_1.0.3-1_*.deb > lwanga_1.0.3-1_$(dpkg --print-architecture).deb
    ````
 
 3. **Attach files**:
-   - Drag and drop `lwanga_1.0.3-1_amd64.deb`
-   - Drag and drop `lwanga_1.0.3-1_amd64.deb.sha256`
+   - Drag and drop `lwanga_1.0.3-1_<arch>.deb`
+   - Drag and drop `lwanga_1.0.3-1_<arch>.deb.sha256`
 
 4. Click **Publish release**
 
@@ -64,8 +65,9 @@ Update the download link in README.md to point to the actual release:
 ````markdown
 ### Ubuntu/Debian
 ```bash
-wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_amd64.deb
-sudo dpkg -i lwanga_1.0.3-1_amd64.deb
+ARCH="$(dpkg --print-architecture)"
+wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_${ARCH}.deb
+sudo dpkg -i lwanga_1.0.3-1_${ARCH}.deb
 sudo apt-get install -f
 ```
 ````
@@ -75,14 +77,16 @@ sudo apt-get install -f
 After publishing, test the download:
 
 ```bash
+ARCH="$(dpkg --print-architecture)"
 # Download
-wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_amd64.deb
+wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_${ARCH}.deb
+wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_${ARCH}.deb.sha256
 
 # Verify checksum
-sha256sum -c lwanga_1.0.3-1_$(dpkg --print-architecture).deb.sha256
+sha256sum -c lwanga_1.0.3-1_${ARCH}.deb.sha256
 
 # Install
-sudo dpkg -i lwanga_1.0.3-1_amd64.deb
+sudo dpkg -i lwanga_1.0.3-1_${ARCH}.deb
 sudo apt-get install -f
 
 # Test
@@ -94,4 +98,4 @@ lwangac examples/hello_world.lwanga -o hello
 ## Done!
 
 Your package is now available for download at:
-`https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_amd64.deb`
+`https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_<arch>.deb`

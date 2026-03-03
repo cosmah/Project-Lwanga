@@ -153,7 +153,7 @@ bool Preprocessor::processDirective(std::string& output) {
     std::string directive = readIdentifier();
     
     if (directive == "if") {
-        directiveStack.push({directive, line});
+        directiveStack.push({directive, line, false});
         skipWhitespace();
         std::string condition;
         while (currentChar() != '\n' && currentChar() != '\0') {
@@ -165,11 +165,12 @@ bool Preprocessor::processDirective(std::string& output) {
         if (!evaluateCondition(condition)) {
             int skipResult = skipUntilElseOrEndif(1);
             if (skipResult == 2) directiveStack.pop();
+            else if (skipResult == 1) directiveStack.top().sawElse = true;
             else if (skipResult == 0) throw std::runtime_error("Unterminated conditional directive at EOF");
         }
         return true;
     } else if (directive == "ifdef") {
-        directiveStack.push({directive, line});
+        directiveStack.push({directive, line, false});
         skipWhitespace();
         std::string symbol = readIdentifier();
         while (currentChar() != '\n' && currentChar() != '\0') advance();
@@ -178,11 +179,12 @@ bool Preprocessor::processDirective(std::string& output) {
         if (!isDefined(symbol)) {
             int skipResult = skipUntilElseOrEndif(1);
             if (skipResult == 2) directiveStack.pop();
+            else if (skipResult == 1) directiveStack.top().sawElse = true;
             else if (skipResult == 0) throw std::runtime_error("Unterminated conditional directive at EOF");
         }
         return true;
     } else if (directive == "ifndef") {
-        directiveStack.push({directive, line});
+        directiveStack.push({directive, line, false});
         skipWhitespace();
         std::string symbol = readIdentifier();
         while (currentChar() != '\n' && currentChar() != '\0') advance();
@@ -191,17 +193,25 @@ bool Preprocessor::processDirective(std::string& output) {
         if (isDefined(symbol)) {
             int skipResult = skipUntilElseOrEndif(1);
             if (skipResult == 2) directiveStack.pop();
+            else if (skipResult == 1) directiveStack.top().sawElse = true;
             else if (skipResult == 0) throw std::runtime_error("Unterminated conditional directive at EOF");
         }
         return true;
     } else if (directive == "else") {
-        if (directiveStack.empty() || (directiveStack.top().type != "if" && 
-            directiveStack.top().type != "ifdef" && directiveStack.top().type != "ifndef")) {
+        if (directiveStack.empty()) {
             throw std::runtime_error("Line " + std::to_string(line) + ": #else without #if");
         }
+        if (directiveStack.top().sawElse) {
+            throw std::runtime_error("Line " + std::to_string(line) + ": multiple #else for same #if");
+        }
+        if (directiveStack.top().type != "if" && 
+            directiveStack.top().type != "ifdef" && directiveStack.top().type != "ifndef") {
+            throw std::runtime_error("Line " + std::to_string(line) + ": #else without #if");
+        }
+        directiveStack.top().sawElse = true;
         // If we reached here, the #if block was active, so we must skip the #else block
-        directiveStack.pop(); // Pop the matching #if entry
         skipUntilEndif(1);
+        directiveStack.pop(); // Pop the matching #if entry
         return true;
     } else if (directive == "endif") {
         if (directiveStack.empty()) {
