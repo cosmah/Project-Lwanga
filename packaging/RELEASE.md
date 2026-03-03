@@ -1,6 +1,6 @@
-# Lwanga v1.0.2 Release Guide
+# Lwanga v1.0.3 Release Guide
 
-Complete guide for releasing Lwanga v1.0.2 to the public.
+Complete guide for releasing Lwanga v1.0.3 to the public.
 
 ## Pre-Release Checklist
 
@@ -35,7 +35,7 @@ Complete guide for releasing Lwanga v1.0.2 to the public.
 ### 1. Version Bump
 ```bash
 # Update version in all files
-VERSION="1.0.2"
+VERSION="1.0.3"
 
 # Update package.json
 sed -i 's/"version": ".*"/"version": "'$VERSION'"/' extensions/vscode/package.json
@@ -50,8 +50,6 @@ dch -v ${VERSION}-1 "Release version ${VERSION}"
 ### 2. Build All Packages
 
 > **Note:** at this time only the Debian package is officially released. Windows, macOS, Arch and Docker builds are in progress and will be added in future releases.
-
-### 2. Build All Packages
 ```bash
 # Build everything
 ./packaging/build-packages.sh all
@@ -83,14 +81,14 @@ git push origin v${VERSION}
 ### 5. Create GitHub Release
 
 1. Go to https://github.com/cosmah/Project-Lwanga/releases/new
-2. Tag: `v1.0.2`
-3. Title: `Lwanga v1.0.2 - Hardening & Preprocessor Update`
+2. Tag: `v1.0.3`
+3. Title: `Lwanga v1.0.3 - Hardening & Preprocessor Update`
 4. Description: See CHANGELOG.md
 5. Attach files:
-   - `dist/lwanga-1.0.2.tar.gz` (source)
-   - `lwanga_1.0.2-1_amd64.deb` (Debian package)
-   - `lwanga-1.0.2-1-x86_64.pkg.tar.zst` (Arch package)
-   - `extensions/vscode/lwanga-1.0.2.vsix` (VS Code extension)
+   - `dist/lwanga-1.0.3.tar.gz` (source)
+   - `lwanga_1.0.3-1_amd64.deb` (Debian package)
+   - `lwanga-1.0.3-1-x86_64.pkg.tar.zst` (Arch package)
+   - `extensions/vscode/lwanga-1.0.3.vsix` (VS Code extension)
 
 ### 6. Publish Docker Image
 ```bash
@@ -98,7 +96,7 @@ git push origin v${VERSION}
 docker login
 
 # Push images
-docker push cosmctechnologies/lwanga:1.0.2
+docker push cosmctechnologies/lwanga:1.0.3
 docker push cosmctechnologies/lwanga:latest
 ```
 
@@ -119,7 +117,7 @@ npx @vscode/vsce publish
 ```bash
 # Create PPA on Launchpad
 # Upload package
-dput ppa:cosmc-technologies/lwanga lwanga_1.0.2-1_source.changes
+dput ppa:cosmc-technologies/lwanga lwanga_1.0.3-1_source.changes
 ```
 
 #### Arch AUR
@@ -134,7 +132,7 @@ git clone ssh://aur@aur.archlinux.org/lwanga.git aur-lwanga
 cp PKGBUILD .SRCINFO aur-lwanga/
 cd aur-lwanga
 git add PKGBUILD .SRCINFO
-git commit -m "Initial release: v1.0.2"
+git commit -m "Initial release: v1.0.3"
 git push
 ```
 
@@ -149,7 +147,7 @@ cd docs
 git checkout gh-pages
 cp -r docs/_build/html/* .
 git add .
-git commit -m "Update documentation for v1.0.2"
+git commit -m "Update documentation for v1.0.3"
 git push
 ```
 
@@ -189,9 +187,9 @@ git push
 ## Release Announcement Template
 
 ```markdown
-# Lwanga v1.0.2 Released! 🎉
+# Lwanga v1.0.3 Released! 🎉
 
-We're excited to announce the v1.0.2 release of Lwanga, a security-focused systems programming language designed for low-level development, shellcode, and penetration testing.
+We're excited to announce the v1.0.3 release of Lwanga, a security-focused systems programming language designed for low-level development, shellcode, and penetration testing.
 
 ## What is Lwanga?
 
@@ -207,8 +205,8 @@ Lwanga is a compiled systems language that provides:
 
 ### Ubuntu/Debian
 ```bash
-wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga_1.0.2-1_amd64.deb
-sudo dpkg -i lwanga_1.0.2-1_amd64.deb
+wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_amd64.deb
+sudo dpkg -i lwanga_1.0.3-1_amd64.deb
 ```
 
 ### Arch Linux

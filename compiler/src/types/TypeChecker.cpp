@@ -139,6 +139,7 @@ bool TypeChecker::checkCircularStruct(const std::string& name, std::vector<std::
         // Only direct struct members (not pointers) can cause infinite size
         if (field.type->kind == TypeKind::Struct) {
             if (checkCircularStruct(field.type->structName, path)) {
+                path.pop_back();
                 return true;
             }
         } else if (field.type->kind == TypeKind::Array) {
@@ -147,6 +148,7 @@ bool TypeChecker::checkCircularStruct(const std::string& name, std::vector<std::
             while (elem && elem->kind == TypeKind::Array) elem = elem->elementType.get();
             if (elem && elem->kind == TypeKind::Struct) {
                 if (checkCircularStruct(elem->structName, path)) {
+                    path.pop_back();
                     return true;
                 }
             }

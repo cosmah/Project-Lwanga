@@ -73,10 +73,10 @@ packed struct         // Memory-layout controlled structs
 
 ```bash
 # Download .deb package
-wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga_1.0.2-1_amd64.deb
+wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_amd64.deb
 
 # Install
-sudo dpkg -i lwanga_1.0.2-1_amd64.deb
+sudo dpkg -i lwanga_1.0.3-1_amd64.deb
 sudo apt-get install -f  # Fix dependencies
 ```
 </details>
@@ -113,7 +113,7 @@ sudo make install
 
 ```powershell
 # Download and run installer
-Invoke-WebRequest -Uri "https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga-1.0.2-windows-x64-installer.exe" -OutFile "lwanga-installer.exe"
+Invoke-WebRequest -Uri "https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga-1.0.3-windows-x64-installer.exe" -OutFile "lwanga-installer.exe"
 .\lwanga-installer.exe
 
 # Or via Chocolatey
@@ -339,7 +339,7 @@ We welcome contributions! Please see:
 
 ## Roadmap
 
-### v1.0.2 (Current) ✅
+### v1.0.3 (Current) ✅
 - Full compiler with LLVM backend
 - Code formatter and syntax highlighter
 - VS Code and Vim extensions
@@ -406,7 +406,7 @@ If you use Lwanga in your research or project, please cite:
   author = {Cosmc Technologies},
   year = {2026},
   url = {https://github.com/cosmah/Project-Lwanga},
-  version = {1.0.2}
+  version = {1.0.3}
 }
 ```
 

@@ -487,8 +487,8 @@ fn factorial(n: u64) -> u64 {
         return 1;
     }
     
-    let result: u64 = 1;
-    let i: u64 = 2;
+    let mut result: u64 = 1;
+    let mut i: u64 = 2;
     
     while (i <= n) {
         result = result * i;
@@ -540,18 +540,20 @@ fn add(a: u64, b: u64) -> u64 {
 ### Mistake 2: Wrong Return Type
 
 ```lwanga
-fn get_value() -> u64 {
-    return 42;  // 42 is u64 by default
+fn get_value() -> u32 {
+    let x: u64 = 42;
+    return x;  // ERROR: expected u32, got u64
 }
 ```
 
 **Fix:**
 ```lwanga
-fn get_value() -> u64 {
-    return 42;  // ✓ Correct
+fn get_value() -> u32 {
+    let x: u64 = 42;
+    return x as u32;  // ✓ Correct
 }
 
-// Lwanga defaults to u64 for all integers
+// Lwanga requires explicit casts between different integer sizes
 ```
 
 ### Mistake 3: Wrong Number of Arguments

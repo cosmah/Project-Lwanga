@@ -73,7 +73,7 @@ makepkg -si
 
 **Build**:
 ```bash
-docker build -t cosmctechnologies/lwanga:1.0.2 -f packaging/docker/Dockerfile .
+docker build -t cosmctechnologies/lwanga:1.0.3 -f packaging/docker/Dockerfile .
 ```
 
 #### Windows Installer (.exe)
@@ -167,7 +167,7 @@ makensis packaging\windows\installer.nsi
 
 **Format**: Keep a Changelog standard
 **Sections**:
-- Version 1.0.2 release notes
+- Version 1.0.3 release notes
 - Added features (complete list)
 - Compiler features
 - Tools (lwangafmt, lwangacat)
@@ -332,7 +332,7 @@ Root files:
 - [x] Contact information updated
 
 ### Publish Steps
-1. [ ] Create Git tag v1.0.2
+1. [ ] Create Git tag v1.0.3
 2. [ ] Push tag to GitHub
 3. [ ] Create GitHub Release
 4. [ ] Upload release assets

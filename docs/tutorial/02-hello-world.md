@@ -203,7 +203,7 @@ lwangac hello.lwanga -o hello
 
 You should see:
 ```
-Lwanga Compiler v1.0.2
+Lwanga Compiler v1.0.3
 Compilation successful!
 Output: hello
 ```

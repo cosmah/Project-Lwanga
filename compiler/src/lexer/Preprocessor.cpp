@@ -119,33 +119,30 @@ void Preprocessor::skipUntilEndif(int depth) {
     }
 }
 
-bool Preprocessor::skipUntilElseOrEndif(int depth) {
+int Preprocessor::skipUntilElseOrEndif(int depth) {
     while (currentChar() != '\0') {
         if (currentChar() == '#') {
             advance();
             skipWhitespace();
             std::string directive = readIdentifier();
-            
             if (directive == "if" || directive == "ifdef" || directive == "ifndef") {
                 depth++;
             } else if (directive == "else" && depth == 1) {
-                // Skip to end of line
                 while (currentChar() != '\n' && currentChar() != '\0') advance();
                 if (currentChar() == '\n') advance();
-                return true;
+                return 1; // Found else
             } else if (directive == "endif") {
                 depth--;
                 if (depth == 0) {
-                    // Skip to end of line
                     while (currentChar() != '\n' && currentChar() != '\0') advance();
                     if (currentChar() == '\n') advance();
-                    return false;
+                    return 2; // Found endif
                 }
             }
         }
         advance();
     }
-    return false;
+    return 0; // EOF
 }
 
 bool Preprocessor::processDirective(std::string& output) {
@@ -166,7 +163,9 @@ bool Preprocessor::processDirective(std::string& output) {
         if (currentChar() == '\n') advance();
         
         if (!evaluateCondition(condition)) {
-            if (!skipUntilElseOrEndif(1)) directiveStack.pop();
+            int skipResult = skipUntilElseOrEndif(1);
+            if (skipResult == 2) directiveStack.pop();
+            else if (skipResult == 0) throw std::runtime_error("Unterminated conditional directive at EOF");
         }
         return true;
     } else if (directive == "ifdef") {
@@ -177,7 +176,9 @@ bool Preprocessor::processDirective(std::string& output) {
         if (currentChar() == '\n') advance();
         
         if (!isDefined(symbol)) {
-            if (!skipUntilElseOrEndif(1)) directiveStack.pop();
+            int skipResult = skipUntilElseOrEndif(1);
+            if (skipResult == 2) directiveStack.pop();
+            else if (skipResult == 0) throw std::runtime_error("Unterminated conditional directive at EOF");
         }
         return true;
     } else if (directive == "ifndef") {
@@ -188,7 +189,9 @@ bool Preprocessor::processDirective(std::string& output) {
         if (currentChar() == '\n') advance();
         
         if (isDefined(symbol)) {
-            if (!skipUntilElseOrEndif(1)) directiveStack.pop();
+            int skipResult = skipUntilElseOrEndif(1);
+            if (skipResult == 2) directiveStack.pop();
+            else if (skipResult == 0) throw std::runtime_error("Unterminated conditional directive at EOF");
         }
         return true;
     } else if (directive == "else") {
@@ -243,13 +246,12 @@ bool Preprocessor::processDirective(std::string& output) {
 std::string Preprocessor::process() {
     std::string output;
     
+    bool inString = false;
     while (currentChar() != '\0') {
         // Check for preprocessor directive at start of line
         if (currentChar() == '#') {
-            // Check if it's at the beginning of a line (after whitespace)
             bool atLineStart = true;
             if (cursor > 0) {
-                // Look back to see if there's only whitespace before this
                 bool onlyWs = true;
                 for (int i = (int)cursor - 1; i >= 0; i--) {
                     if (source[i] == '\n') break;
@@ -260,31 +262,46 @@ std::string Preprocessor::process() {
                 }
                 atLineStart = onlyWs;
             }
-            
             if (atLineStart) {
                 processDirective(output);
                 continue;
             }
         }
-        
+        // Track string literal context
+        if (currentChar() == '"') {
+            // Check for escaped quote
+            size_t backslashCount = 0;
+            int i = (int)cursor - 1;
+            while (i >= 0 && source[i] == '\\') { backslashCount++; i--; }
+            if (backslashCount % 2 == 0) {
+                inString = !inString;
+            }
+            output += currentChar();
+            advance();
+            continue;
+        }
         // Check for identifier which could be a macro
         if (std::isalpha(currentChar()) || currentChar() == '_') {
             std::string ident = readIdentifier();
-            auto it = symbols.find(ident);
-            if (it != symbols.end()) {
-                // Perform substitution
-                output += it->second;
-            } else {
+            if (inString) {
                 output += ident;
+            } else {
+                auto it = symbols.find(ident);
+                if (it != symbols.end()) {
+                    output += it->second;
+                } else {
+                    output += ident;
+                }
             }
             continue;
         }
-        
         // Regular character, copy to output
         output += currentChar();
         advance();
     }
-    
+    if (!directiveStack.empty()) {
+        throw std::runtime_error("Unterminated conditional directive(s) at EOF");
+    }
     return output;
 }
 

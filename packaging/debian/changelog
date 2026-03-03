@@ -8,7 +8,7 @@ lwanga (1.0.3-1) unstable; urgency=medium
   * Fixed function tutorial examples that were using unsupported syntax
   * All type checking errors now display error[E#] with line:column pointers
 
- -- Cosmc Technologies <cosmahke4@gmail.com>  Mon, 03 Mar 2026 10:00:00 +0000
+ -- Cosmc Technologies <cosmahke4@gmail.com>  Tue, 03 Mar 2026 10:00:00 +0000
 
 lwanga (1.0.2-1) unstable; urgency=medium
 

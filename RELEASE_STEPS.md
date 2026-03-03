@@ -1,4 +1,4 @@
-# Lwanga v1.0.2 Release Steps
+# Lwanga v1.0.3 Release Steps
 
 ## 1. Build the Debian Package
 
@@ -6,12 +6,12 @@
 ./packaging/build-debian.sh
 ```
 
-This will create: `lwanga_1.0.2-1_amd64.deb` (or `arm64` depending on your architecture)
+This will create: `lwanga_1.0.3-1_amd64.deb` (or `arm64` depending on your architecture)
 
 ## 2. Generate Checksum
 
 ```bash
-sha256sum lwanga_1.0.2-1_*.deb > lwanga_1.0.2-1_amd64.deb.sha256
+sha256sum lwanga_1.0.3-1_*.deb > lwanga_1.0.3-1_$(dpkg --print-architecture).deb.sha256
 ```
 
 ## 3. Create GitHub Release
@@ -19,11 +19,11 @@ sha256sum lwanga_1.0.2-1_*.deb > lwanga_1.0.2-1_amd64.deb.sha256
 1. Go to: https://github.com/cosmah/Project-Lwanga/releases/new
 
 2. Fill in:
-   - **Tag**: `v1.0.2`
-   - **Release title**: `Lwanga v1.0.2 - Hardening & Preprocessor Update`
+   - **Tag**: `v1.0.3`
+   - **Release title**: `Lwanga v1.0.3 - Hardening & Preprocessor Update`
    - **Description**: 
    ````markdown
-   # Lwanga v1.0.2 - Hardening & Preprocessor Update
+   # Lwanga v1.0.3 - Hardening & Preprocessor Update
    
    Point release with compiler hardening and preprocessor improvements.
    
@@ -31,8 +31,8 @@ sha256sum lwanga_1.0.2-1_*.deb > lwanga_1.0.2-1_amd64.deb.sha256
    
    ### Debian/Ubuntu
    ```bash
-   wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga_1.0.2-1_amd64.deb
-   sudo dpkg -i lwanga_1.0.2-1_amd64.deb
+   wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_amd64.deb
+   sudo dpkg -i lwanga_1.0.3-1_amd64.deb
    sudo apt-get install -f
    ```
    
@@ -52,8 +52,8 @@ sha256sum lwanga_1.0.2-1_*.deb > lwanga_1.0.2-1_amd64.deb.sha256
    ````
 
 3. **Attach files**:
-   - Drag and drop `lwanga_1.0.2-1_amd64.deb`
-   - Drag and drop `lwanga_1.0.2-1_amd64.deb.sha256`
+   - Drag and drop `lwanga_1.0.3-1_amd64.deb`
+   - Drag and drop `lwanga_1.0.3-1_amd64.deb.sha256`
 
 4. Click **Publish release**
 
@@ -64,8 +64,8 @@ Update the download link in README.md to point to the actual release:
 ````markdown
 ### Ubuntu/Debian
 ```bash
-wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga_1.0.2-1_amd64.deb
-sudo dpkg -i lwanga_1.0.2-1_amd64.deb
+wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_amd64.deb
+sudo dpkg -i lwanga_1.0.3-1_amd64.deb
 sudo apt-get install -f
 ```
 ````
@@ -76,13 +76,13 @@ After publishing, test the download:
 
 ```bash
 # Download
-wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga_1.0.2-1_amd64.deb
+wget https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_amd64.deb
 
 # Verify checksum
-sha256sum -c lwanga_1.0.2-1_amd64.deb.sha256
+sha256sum -c lwanga_1.0.3-1_$(dpkg --print-architecture).deb.sha256
 
 # Install
-sudo dpkg -i lwanga_1.0.2-1_amd64.deb
+sudo dpkg -i lwanga_1.0.3-1_amd64.deb
 sudo apt-get install -f
 
 # Test
@@ -94,4 +94,4 @@ lwangac examples/hello_world.lwanga -o hello
 ## Done!
 
 Your package is now available for download at:
-`https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.2/lwanga_1.0.2-1_amd64.deb`
+`https://github.com/cosmah/Project-Lwanga/releases/download/v1.0.3/lwanga_1.0.3-1_amd64.deb`

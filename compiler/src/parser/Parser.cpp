@@ -756,11 +756,13 @@ std::unique_ptr<ExprAST> Parser::parsePostfixExpr() {
     auto expr = parsePrimaryExpr();
     
     while (true) {
-        if (match(TokenType::TOK_LEFT_PAREN)) {
+        if (check(TokenType::TOK_LEFT_PAREN)) {
             // Function call
-            std::vector<std::unique_ptr<ExprAST>> args;
-            // Capture location of the opening paren (which was just matched)
+            // Capture location of the opening paren BEFORE advancing
             SourceLocation callLoc(currentToken.line, currentToken.column);
+            advance(); // match TOK_LEFT_PAREN
+            
+            std::vector<std::unique_ptr<ExprAST>> args;
             
             if (!check(TokenType::TOK_RIGHT_PAREN)) {
                 do {

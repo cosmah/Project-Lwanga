@@ -1,6 +1,6 @@
 pkgbase = lwanga
 	pkgdesc = Security-focused systems programming language for shellcode and low-level development
-	pkgver = 1.0.2
+	pkgver = 1.0.3
 	pkgrel = 1
 	url = https://github.com/cosmah/Project-Lwanga
 	arch = x86_64
@@ -11,7 +11,7 @@ pkgbase = lwanga
 	makedepends = llvm
 	depends = llvm
 	depends = gcc-libs
-	source = lwanga-1.0.2.tar.gz::https://github.com/cosmah/Project-Lwanga/archive/v1.0.2.tar.gz
+	source = lwanga-1.0.3.tar.gz::https://github.com/cosmah/Project-Lwanga/archive/v1.0.3.tar.gz
 	sha256sums = 5a363d346134c0c629cd84ca83a3228650860062aa4b9a7b023602fefade28ee
 
 pkgname = lwanga
