@@ -270,13 +270,14 @@ std::unique_ptr<FunctionAST> Parser::parseFunction(bool isNaked) {
             }
             
             std::string paramName = currentToken.lexeme;
+            SourceLocation paramLoc(currentToken.line, currentToken.column);
             advance();
             
             expect(TokenType::TOK_COLON, "Expected ':' after parameter name");
             
             auto paramType = parseType();
             
-            params.push_back(Parameter(paramName, std::move(paramType)));
+            params.push_back(Parameter(paramName, std::move(paramType), paramLoc));
         } while (match(TokenType::TOK_COMMA));
     }
     
@@ -716,12 +717,13 @@ std::unique_ptr<ExprAST> Parser::parseBinaryExpr(int minPrecedence) {
         }
         
         TokenType opToken = currentToken.type;
+        SourceLocation opLoc(currentToken.line, currentToken.column);
         advance();
         
         auto right = parseBinaryExpr(precedence + 1);
         
         BinaryOp op = tokenToBinaryOp(opToken);
-        left = std::make_unique<BinaryExpr>(std::move(left), op, std::move(right));
+        left = std::make_unique<BinaryExpr>(std::move(left), op, std::move(right), opLoc);
     }
     
     return left;
@@ -732,12 +734,13 @@ std::unique_ptr<ExprAST> Parser::parseUnaryExpr() {
     if (check(TokenType::TOK_MINUS) || check(TokenType::TOK_NOT) ||
         check(TokenType::TOK_STAR) || check(TokenType::TOK_AMPERSAND)) {
         TokenType opToken = currentToken.type;
+        SourceLocation loc(currentToken.line, currentToken.column);
         advance();
         
         auto operand = parseUnaryExpr();
         UnaryOp op = tokenToUnaryOp(opToken);
         
-        return std::make_unique<UnaryExpr>(op, std::move(operand));
+        return std::make_unique<UnaryExpr>(op, std::move(operand), loc);
     }
     
     return parsePostfixExpr();
@@ -750,6 +753,8 @@ std::unique_ptr<ExprAST> Parser::parsePostfixExpr() {
         if (match(TokenType::TOK_LEFT_PAREN)) {
             // Function call
             std::vector<std::unique_ptr<ExprAST>> args;
+            // Capture location of the opening paren (which was just matched)
+            SourceLocation callLoc(currentToken.line, currentToken.column);
             
             if (!check(TokenType::TOK_RIGHT_PAREN)) {
                 do {
@@ -759,7 +764,7 @@ std::unique_ptr<ExprAST> Parser::parsePostfixExpr() {
             
             expect(TokenType::TOK_RIGHT_PAREN, "Expected ')' after function arguments");
             
-            expr = std::make_unique<CallExpr>(std::move(expr), std::move(args));
+            expr = std::make_unique<CallExpr>(std::move(expr), std::move(args), callLoc);
         } else if (match(TokenType::TOK_LEFT_BRACKET)) {
             // Array indexing
             auto index = parseExpression();
@@ -805,15 +810,17 @@ std::unique_ptr<ExprAST> Parser::parsePrimaryExpr() {
             advance();
             return nullptr;
         }
+        SourceLocation loc(currentToken.line, currentToken.column);
         advance();
-        return std::make_unique<IntLiteralExpr>(value);
+        return std::make_unique<IntLiteralExpr>(value, loc);
     }
     
     // String literal
     if (check(TokenType::TOK_STRING)) {
         std::string value = currentToken.lexeme;
+        SourceLocation loc(currentToken.line, currentToken.column);
         advance();
-        return std::make_unique<StringLiteralExpr>(value);
+        return std::make_unique<StringLiteralExpr>(value, loc);
     }
     
     // Syscall
@@ -829,6 +836,7 @@ std::unique_ptr<ExprAST> Parser::parsePrimaryExpr() {
     // Identifier or struct initialization
     if (check(TokenType::TOK_IDENTIFIER)) {
         std::string name = currentToken.lexeme;
+        SourceLocation loc(currentToken.line, currentToken.column);
         advance();
         
         // Check for struct initialization
@@ -836,7 +844,7 @@ std::unique_ptr<ExprAST> Parser::parsePrimaryExpr() {
             return parseStructInit(name);
         }
         
-        return std::make_unique<IdentifierExpr>(name);
+        return std::make_unique<IdentifierExpr>(name, loc);
     }
     
     // Array literal

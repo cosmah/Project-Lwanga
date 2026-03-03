@@ -186,7 +186,8 @@ void TypeChecker::checkFunction(FunctionAST* func) {
         );
         
         if (!symbolTable.define(param.name, std::move(symbol))) {
-            reportError("Parameter '" + param.name + "' already defined");
+            reportError("Parameter '" + param.name + "' already defined",
+                       param.loc.line, param.loc.column);
         }
     }
     
@@ -353,7 +354,8 @@ void TypeChecker::checkReturn(ReturnStmt* stmt) {
         if (returnType && !TypeSystem::areTypesCompatible(currentFunction->returnType.get(), returnType)) {
             reportError("Return type mismatch: expected " +
                        TypeSystem::typeToString(currentFunction->returnType.get()) + ", got " +
-                       TypeSystem::typeToString(returnType));
+                       TypeSystem::typeToString(returnType),
+                       stmt->loc.line, stmt->loc.column);
         }
     }
 }
@@ -523,7 +525,8 @@ Type* TypeChecker::checkCall(CallExpr* expr) {
         if (argType && !TypeSystem::areTypesCompatible(calleeType->paramTypes[i].get(), argType)) {
             reportError("Argument " + std::to_string(i + 1) + " type mismatch: expected " +
                        TypeSystem::typeToString(calleeType->paramTypes[i].get()) + ", got " +
-                       TypeSystem::typeToString(argType));
+                       TypeSystem::typeToString(argType),
+                       expr->args[i]->loc.line, expr->args[i]->loc.column);
         }
     }
     

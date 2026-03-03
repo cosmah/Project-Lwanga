@@ -327,9 +327,10 @@ public:
 struct Parameter {
     std::string name;
     std::unique_ptr<Type> type;
+    SourceLocation loc;
     
-    Parameter(const std::string& n, std::unique_ptr<Type> t)
-        : name(n), type(std::move(t)) {}
+    Parameter(const std::string& n, std::unique_ptr<Type> t, SourceLocation l = SourceLocation())
+        : name(n), type(std::move(t)), loc(l) {}
 };
 
 // Function definition
