@@ -48,6 +48,10 @@ dch -v ${VERSION}-1 "Release version ${VERSION}"
 ```
 
 ### 2. Build All Packages
+
+> **Note:** at this time only the Debian package is officially released. Windows, macOS, Arch and Docker builds are in progress and will be added in future releases.
+
+### 2. Build All Packages
 ```bash
 # Build everything
 ./packaging/build-packages.sh all

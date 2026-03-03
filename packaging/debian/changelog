@@ -1,3 +1,15 @@
+lwanga (1.0.3-1) unstable; urgency=medium
+
+  * Added logical AND (&&) and OR (||) operators for proper boolean logic
+  * Precise SourceLocation tracking for all AST expression nodes
+  * Error messages now show exact line and column numbers for all type failures
+  * Fixed argument type mismatch errors to pinpoint exact argument location
+  * Fixed duplicate parameter reporting with precise location
+  * Fixed function tutorial examples that were using unsupported syntax
+  * All type checking errors now display error[E#] with line:column pointers
+
+ -- Cosmc Technologies <cosmahke4@gmail.com>  Mon, 03 Mar 2026 10:00:00 +0000
+
 lwanga (1.0.2-1) unstable; urgency=medium
 
   * Compiler hardening and stability improvements
