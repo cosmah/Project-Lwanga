@@ -23,8 +23,168 @@
 #include <llvm/Transforms/Utils/Local.h>
 #include <system_error>
 #include <cstdlib>
+#include <cstdio>
 #include <cstring>
 #include <sstream>
+#include <algorithm>
+#include <array>
+#include <filesystem>
+#include <string>
+#include <vector>
+
+namespace {
+
+// lld-link on Linux does not resolve /DEFAULTLIB:kernel32 like MSVC; pass MinGW's import stub explicitly.
+std::string findKernel32ImportLibraryForLldLink(const std::string& targetTriple) {
+    namespace fs = std::filesystem;
+
+    if (const char* direct = std::getenv("LWANGA_MINGW_LIB")) {
+        if (fs::is_regular_file(direct)) {
+            return std::string(direct);
+        }
+    }
+    if (const char* dirEnv = std::getenv("LWANGA_MINGW_LIB_DIR")) {
+        fs::path cand = fs::path(dirEnv) / "libkernel32.a";
+        if (fs::is_regular_file(cand)) {
+            return cand.string();
+        }
+    }
+
+    std::string mingwPrefix = "x86_64-w64-mingw32";
+    if (targetTriple.find("aarch64") != std::string::npos ||
+        targetTriple.find("arm64") != std::string::npos) {
+        mingwPrefix = "aarch64-w64-mingw32";
+    }
+
+    const std::vector<std::string> kCandidates = {
+        "/usr/" + mingwPrefix + "/lib/libkernel32.a",
+        "/usr/" + mingwPrefix + "/sys-root/mingw/lib/libkernel32.a",
+    };
+    for (const std::string& p : kCandidates) {
+        if (fs::is_regular_file(p)) {
+            return p;
+        }
+    }
+
+    const fs::path gccRoot = std::string("/usr/lib/gcc/") + mingwPrefix;
+    std::error_code ec;
+    if (fs::exists(gccRoot, ec)) {
+        for (const auto& entry : fs::directory_iterator(gccRoot, ec)) {
+            if (!entry.is_directory()) {
+                continue;
+            }
+            fs::path cand = entry.path() / "libkernel32.a";
+            if (fs::is_regular_file(cand)) {
+                return cand.string();
+            }
+        }
+    }
+
+    return {};
+}
+
+#ifndef _WIN32
+static std::string mingwGccDriverName(const std::string& targetTriple) {
+    if (targetTriple.find("aarch64") != std::string::npos ||
+        targetTriple.find("arm64") != std::string::npos) {
+        return "aarch64-w64-mingw32-gcc";
+    }
+    return "x86_64-w64-mingw32-gcc";
+}
+
+// Resolves the exact libgcc.a this cross-GCC would use (handles versioned dirs e.g. .../13/libgcc.a).
+static std::string queryLibgccViaMingwGcc(const std::string& targetTriple) {
+    namespace fs = std::filesystem;
+    std::string gcc = mingwGccDriverName(targetTriple);
+    std::string cmd = gcc + " -print-libgcc-file-name";
+    std::array<char, 4096> line{};
+    FILE* fp = popen(cmd.c_str(), "r");
+    if (!fp) {
+        return {};
+    }
+    if (!fgets(line.data(), static_cast<int>(line.size()), fp)) {
+        pclose(fp);
+        return {};
+    }
+    pclose(fp);
+    std::string path(line.data());
+    while (!path.empty() && (path.back() == '\n' || path.back() == '\r')) {
+        path.pop_back();
+    }
+    if (path.empty() || path.find_first_of(" \t") != std::string::npos) {
+        return {};
+    }
+    if (fs::is_regular_file(path)) {
+        return path;
+    }
+    return {};
+}
+#endif
+
+// MinGW libgcc.a provides ___chkstk_ms and other compiler runtime; lld-link does not pull it in automatically.
+std::string findLibgccForLldLink(const std::string& targetTriple) {
+    namespace fs = std::filesystem;
+
+    if (const char* direct = std::getenv("LWANGA_MINGW_LIBGCC")) {
+        if (fs::is_regular_file(direct)) {
+            return std::string(direct);
+        }
+    }
+    if (const char* dirEnv = std::getenv("LWANGA_MINGW_GCC_LIB_DIR")) {
+        fs::path cand = fs::path(dirEnv) / "libgcc.a";
+        if (fs::is_regular_file(cand)) {
+            return cand.string();
+        }
+    }
+
+#ifndef _WIN32
+    {
+        std::string fromGcc = queryLibgccViaMingwGcc(targetTriple);
+        if (!fromGcc.empty()) {
+            return fromGcc;
+        }
+    }
+#endif
+
+    std::string mingwPrefix = "x86_64-w64-mingw32";
+    if (targetTriple.find("aarch64") != std::string::npos ||
+        targetTriple.find("arm64") != std::string::npos) {
+        mingwPrefix = "aarch64-w64-mingw32";
+    }
+
+    const std::vector<std::string> kCandidates = {
+        "/usr/lib/gcc/" + mingwPrefix + "/libgcc.a",
+        "/usr/" + mingwPrefix + "/lib/libgcc.a",
+    };
+    for (const std::string& p : kCandidates) {
+        if (fs::is_regular_file(p)) {
+            return p;
+        }
+    }
+
+    const fs::path gccRoot = std::string("/usr/lib/gcc/") + mingwPrefix;
+    std::error_code ec;
+    if (fs::exists(gccRoot, ec)) {
+        std::vector<fs::path> versionDirs;
+        for (const auto& entry : fs::directory_iterator(gccRoot, ec)) {
+            if (!entry.is_directory()) {
+                continue;
+            }
+            versionDirs.push_back(entry.path());
+        }
+        std::sort(versionDirs.begin(), versionDirs.end());
+        for (const auto& dir : versionDirs) {
+            fs::path cand = dir / "libgcc.a";
+            if (fs::is_regular_file(cand)) {
+                return cand.string();
+            }
+        }
+    }
+
+    return {};
+}
+
+} // namespace
 
 #ifdef _WIN32
 #include <windows.h>
@@ -350,12 +510,47 @@ bool Backend::generateExecutable(const std::string& filename) {
         args.push_back("_start");
     } else if (targetTriple.find("windows") != std::string::npos) {
         args.push_back(linkerPath);
-        args.push_back("/OUT:" + filename + ".exe");
+        std::string peOut = filename;
+        if (peOut.size() < 4 || peOut.compare(peOut.size() - 4, 4, ".exe") != 0) {
+            peOut += ".exe";
+        }
+        args.push_back("/OUT:" + peOut);
         args.push_back(objFile);
+        std::string libgccPath = findLibgccForLldLink(targetTriple);
+        if (!libgccPath.empty()) {
+            args.push_back(libgccPath);
+        }
         args.push_back("/SUBSYSTEM:CONSOLE");
-        args.push_back("/ENTRY:main");
         args.push_back("/FIXED");
         args.push_back("/NODEFAULTLIB");
+        {
+            llvm::Function* winEntry = module->getFunction("LwangaWinEntry");
+            if (winEntry && !winEntry->isDeclaration()) {
+                args.push_back("/ENTRY:LwangaWinEntry");
+                std::string k32 = findKernel32ImportLibraryForLldLink(targetTriple);
+                if (!k32.empty()) {
+                    args.push_back(k32);
+                } else {
+                    std::string mingwPrefix = "x86_64-w64-mingw32";
+                    if (targetTriple.find("aarch64") != std::string::npos ||
+                        targetTriple.find("arm64") != std::string::npos) {
+                        mingwPrefix = "aarch64-w64-mingw32";
+                    }
+                    args.push_back("/LIBPATH:/usr/" + mingwPrefix + "/lib");
+                    args.push_back("/DEFAULTLIB:libkernel32");
+                }
+            } else {
+                args.push_back("/ENTRY:main");
+            }
+        }
+        if (libgccPath.empty()) {
+            setError(
+                "PE link: could not find MinGW libgcc.a (___chkstk_ms). Install "
+                "gcc-mingw-w64-x86-64, or set LWANGA_MINGW_LIBGCC to the full path "
+                "to libgcc.a.");
+            std::remove(objFile.c_str());
+            return false;
+        }
     }
 
     // Convert args to char* array

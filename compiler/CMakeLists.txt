@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
-project(LwangaCompiler VERSION 1.0.3 LANGUAGES CXX)
+# C is required so LLVM's FindLibEdit.cmake can run check_include_file (.c try_compile)
+project(LwangaCompiler VERSION 1.0.3 LANGUAGES CXX C)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -12,8 +13,8 @@ find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-# Add LLVM definitions and include directories
-include_directories(${LLVM_INCLUDE_DIRS})
+# LLVM headers: mark as SYSTEM so -Wall/-Wextra do not warn inside third-party code
+include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
@@ -100,7 +101,7 @@ add_executable(lwangac ${COMPILER_SOURCES})
 # Link against LLVM, lexer, parser, types, codegen, backend, and modules
 target_link_libraries(lwangac lwanga_lexer lwanga_parser lwanga_types lwanga_codegen lwanga_backend lwanga_modules ${llvm_libs})
 
-# Compiler flags
+# Strong warnings on our sources; LLVM is already -isystem above
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(lwangac PRIVATE -Wall -Wextra -Wpedantic)
 endif()

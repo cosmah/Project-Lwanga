@@ -17,6 +17,10 @@ namespace lwanga {
 // IR generation for Lwanga AST
 class IRGenerator {
     llvm::Type* resolveLValueType(ExprAST* expr);
+    /// LLVM type to load/store through `*operand` (i8 for opaque/computed ptr, else pointee / lvalue type).
+    llvm::Type* getDerefMemoryType(ExprAST* operand);
+    /// If `ptrVar` holds a generic `ptr`, refine load width from `&x` or `= other_ptr` assignments.
+    void recordPointeeFromPtrValue(const std::string& ptrVarName, ExprAST* valueExpr);
 public:
     IRGenerator(const std::string& moduleName, const std::string& sourceFile = "", const std::string& targetTriple = "");
     ~IRGenerator();
@@ -86,6 +90,11 @@ private:
     
     // Generate _start function wrapper for freestanding executables
     void generateStartFunction();
+
+    // MinGW/PE: LLVM may call __main() from main(); provide empty stub when no CRT
+    void generateWindowsMinGWMainStub();
+    // PE: real entry LwangaWinEntry -> main() -> ExitProcess(code) so %ERRORLEVEL% is reliable
+    void generateWindowsConsoleEntry();
     
     // Generate function
     void generateFunction(FunctionAST* func);

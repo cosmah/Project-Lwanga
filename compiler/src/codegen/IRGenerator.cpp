@@ -53,7 +53,9 @@ bool IRGenerator::generate(ProgramAST* program) {
     
     // Fifth pass: Generate _start function wrapper for freestanding executables
     generateStartFunction();
-    
+    generateWindowsMinGWMainStub();
+    generateWindowsConsoleEntry();
+
     // Finalize debug info if enabled
     if (generateDebugInfo) {
         finalizeDebugInfo();
@@ -324,6 +326,67 @@ void IRGenerator::generateStartFunction() {
     builder->CreateUnreachable();
 }
 
+void IRGenerator::generateWindowsMinGWMainStub() {
+    const std::string triple = module->getTargetTriple();
+    if (triple.find("windows") == std::string::npos) {
+        return;
+    }
+    llvm::Function* userMain = module->getFunction("main");
+    if (!userMain) {
+        return;
+    }
+    if (module->getFunction("__main")) {
+        return;
+    }
+    llvm::FunctionType* voidFn =
+        llvm::FunctionType::get(llvm::Type::getVoidTy(*context), false);
+    llvm::Function* stub = llvm::Function::Create(
+        voidFn,
+        llvm::Function::ExternalLinkage,
+        "__main",
+        module.get());
+    llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", stub);
+    builder->SetInsertPoint(bb);
+    builder->CreateRetVoid();
+}
+
+void IRGenerator::generateWindowsConsoleEntry() {
+    const std::string triple = module->getTargetTriple();
+    if (triple.find("windows") == std::string::npos) {
+        return;
+    }
+    llvm::Function* userMain = module->getFunction("main");
+    if (!userMain || userMain->isDeclaration()) {
+        return;
+    }
+    if (module->getFunction("LwangaWinEntry")) {
+        return;
+    }
+
+    llvm::Type* i32 = llvm::Type::getInt32Ty(*context);
+    llvm::FunctionType* exitTy =
+        llvm::FunctionType::get(llvm::Type::getVoidTy(*context), {i32}, false);
+    llvm::FunctionCallee exitCallee =
+        module->getOrInsertFunction("ExitProcess", exitTy);
+    auto* exitFn = llvm::cast<llvm::Function>(exitCallee.getCallee());
+    exitFn->setDLLStorageClass(llvm::GlobalValue::DLLImportStorageClass);
+
+    llvm::FunctionType* entryTy =
+        llvm::FunctionType::get(llvm::Type::getVoidTy(*context), false);
+    llvm::Function* entry = llvm::Function::Create(
+        entryTy,
+        llvm::Function::ExternalLinkage,
+        "LwangaWinEntry",
+        module.get());
+    llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context, "entry", entry);
+    llvm::IRBuilder<> ir(*context);
+    ir.SetInsertPoint(bb);
+    llvm::CallInst* mainRet = ir.CreateCall(userMain, {}, "mainret");
+    llvm::Value* code = ir.CreateTrunc(mainRet, i32, "exitcode");
+    ir.CreateCall(exitFn, {code});
+    ir.CreateUnreachable();
+}
+
 void IRGenerator::generateFunction(FunctionAST* func) {
     // Get the function
     llvm::Function* llvmFunc = module->getFunction(func->name);
@@ -395,9 +458,14 @@ void IRGenerator::generateFunction(FunctionAST* func) {
         namedValues[std::string(arg.getName())] = alloca;
         namedTypes[std::string(arg.getName())] = arg.getType();
         
-        // Track pointee type for pointer parameters
+        // Track pointee type for typed pointer parameters (*T); generic `ptr` has no pointee
         if (argIdx < func->params.size() && func->params[argIdx].type->kind == TypeKind::Ptr) {
-            pointeeTypes[std::string(arg.getName())] = convertType(func->params[argIdx].type->pointeeType.get());
+            if (func->params[argIdx].type->pointeeType) {
+                llvm::Type* pt = convertType(func->params[argIdx].type->pointeeType.get());
+                if (pt) {
+                    pointeeTypes[std::string(arg.getName())] = pt;
+                }
+            }
         }
         
         // Create debug info for parameter
@@ -565,11 +633,15 @@ void IRGenerator::generateVarDecl(VarDeclStmt* stmt) {
     if (stmt->type->kind == TypeKind::Ptr && stmt->type->pointeeType) {
         pointeeTypes[stmt->name] = convertType(stmt->type->pointeeType.get());
     }
+    if (stmt->type->kind == TypeKind::Ptr && stmt->initializer) {
+        recordPointeeFromPtrValue(stmt->name, stmt->initializer.get());
+    }
 }
 
 void IRGenerator::generateAssignment(AssignmentStmt* stmt) {
     // Check if target is a register variable
     if (auto* ident = dynamic_cast<IdentifierExpr*>(stmt->target.get())) {
+        recordPointeeFromPtrValue(ident->name, stmt->value.get());
         auto valueIt = namedValues.find(ident->name);
         if (valueIt != namedValues.end() && valueIt->second == nullptr) {
             // This is a register variable - write to it using inline assembly
@@ -604,6 +676,22 @@ void IRGenerator::generateAssignment(AssignmentStmt* stmt) {
     // Generate value
     llvm::Value* value = generateExpression(stmt->value.get());
     if (!value) {
+        return;
+    }
+
+    if (auto* derefT = dynamic_cast<UnaryExpr*>(stmt->target.get());
+        derefT && derefT->op == UnaryOp::Deref) {
+        llvm::Type* memTy = getDerefMemoryType(derefT->operand.get());
+        llvm::Value* stVal = value;
+        if (memTy->isIntegerTy()) {
+            unsigned w = memTy->getIntegerBitWidth();
+            if (w < 64) {
+                stVal = builder->CreateTrunc(value, memTy, "storetrunc");
+            }
+        } else if (memTy->isPointerTy()) {
+            stVal = builder->CreateIntToPtr(value, memTy, "storeitp");
+        }
+        builder->CreateStore(stVal, target);
         return;
     }
     
@@ -941,6 +1029,48 @@ llvm::Type* IRGenerator::resolveLValueType(ExprAST* expr) {
     return llvm::Type::getInt64Ty(*context);
 }
 
+llvm::Type* IRGenerator::getDerefMemoryType(ExprAST* operand) {
+    if (auto* addrOf = dynamic_cast<UnaryExpr*>(operand)) {
+        if (addrOf->op == UnaryOp::AddressOf) {
+            llvm::Type* t = resolveLValueType(addrOf->operand.get());
+            if (t) {
+                return t;
+            }
+        }
+    }
+    if (auto* id = dynamic_cast<IdentifierExpr*>(operand)) {
+        auto pt = pointeeTypes.find(id->name);
+        if (pt != pointeeTypes.end() && pt->second != nullptr) {
+            return pt->second;
+        }
+        auto nt = namedTypes.find(id->name);
+        if (nt != namedTypes.end() && nt->second && nt->second->isPointerTy()) {
+            return llvm::Type::getInt8Ty(*context);
+        }
+    }
+    return llvm::Type::getInt8Ty(*context);
+}
+
+void IRGenerator::recordPointeeFromPtrValue(const std::string& ptrVarName, ExprAST* valueExpr) {
+    if (!valueExpr) {
+        return;
+    }
+    auto nt = namedTypes.find(ptrVarName);
+    if (nt == namedTypes.end() || !nt->second || !nt->second->isPointerTy()) {
+        return;
+    }
+    if (auto* u = dynamic_cast<UnaryExpr*>(valueExpr); u && u->op == UnaryOp::AddressOf) {
+        if (llvm::Type* t = resolveLValueType(u->operand.get())) {
+            pointeeTypes[ptrVarName] = t;
+        }
+    } else if (auto* rhsId = dynamic_cast<IdentifierExpr*>(valueExpr)) {
+        auto it = pointeeTypes.find(rhsId->name);
+        if (it != pointeeTypes.end() && it->second != nullptr) {
+            pointeeTypes[ptrVarName] = it->second;
+        }
+    }
+}
+
 llvm::Value* IRGenerator::generateExpression(ExprAST* expr) {
     if (auto* intLit = dynamic_cast<IntLiteralExpr*>(expr)) {
         return generateIntLiteral(intLit);
@@ -1232,18 +1362,22 @@ llvm::Value* IRGenerator::generateUnary(UnaryExpr* expr) {
         }
         
         case UnaryOp::Deref: {
-            llvm::Value* operand = generateExpression(expr->operand.get());
-            if (!operand) {
+            llvm::Type* memTy = getDerefMemoryType(expr->operand.get());
+            llvm::Value* addr = generateExpression(expr->operand.get());
+            if (!addr) {
                 return nullptr;
             }
-            
-            // Dereference pointer - load from address
-            // For generic pointers, load as u64
-            return builder->CreateLoad(
-                llvm::Type::getInt64Ty(*context),
-                operand,
-                "dereftmp"
-            );
+            llvm::Value* loaded = builder->CreateLoad(memTy, addr, "dereftmp");
+            if (memTy->isPointerTy()) {
+                return builder->CreatePtrToInt(loaded, llvm::Type::getInt64Ty(*context), "derefpti");
+            }
+            if (memTy->isIntegerTy()) {
+                unsigned w = memTy->getIntegerBitWidth();
+                if (w < 64) {
+                    return builder->CreateZExt(loaded, llvm::Type::getInt64Ty(*context), "dereftz");
+                }
+            }
+            return loaded;
         }
         
         case UnaryOp::AddressOf: {

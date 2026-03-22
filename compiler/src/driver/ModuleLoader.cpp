@@ -9,12 +9,14 @@ namespace lwanga {
 
 ModuleLoader::ModuleLoader() {}
 
-std::unique_ptr<ProgramAST> ModuleLoader::loadModule(const std::string& mainFilePath) {
+std::unique_ptr<ProgramAST> ModuleLoader::loadModule(const std::string& mainFilePath,
+                                                       const std::string& targetTriple) {
     // Clear state
     loadingModules.clear();
     loadedModules.clear();
     modules.clear();
     errors.clear();
+    compileTargetTriple = targetTriple;
     
     // Normalize the main file path
     std::filesystem::path mainPath = std::filesystem::absolute(mainFilePath);
@@ -66,8 +68,8 @@ std::unique_ptr<ProgramAST> ModuleLoader::loadSingleModule(const std::string& fi
         return nullptr;
     }
     
-    // Preprocess the source
-    Preprocessor preprocessor(source);
+    // Preprocess the source (target triple drives #if PLATFORM_*)
+    Preprocessor preprocessor(source, compileTargetTriple);
     std::string preprocessedSource;
     try {
         preprocessedSource = preprocessor.process();

@@ -663,8 +663,11 @@ int Parser::getOperatorPrecedence(TokenType type) const {
             return 2;
         case TokenType::TOK_LOGICAL_OR:
             return 1;
+        // `as` must bind tighter than &&/|| (their RHS uses minPrec = prec+1, which
+        // was rejecting `as` when it shared precedence 2). Must also bind tighter than
+        // * / % so `a * b as u64` parses as `a * (b as u64)`.
         case TokenType::TOK_AS:
-            return 2;
+            return 11;
         default:
             return -1;
     }

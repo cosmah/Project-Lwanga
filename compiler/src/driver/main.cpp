@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
     }
     
     ModuleLoader loader;
-    auto program = loader.loadModule(InputFilename);
+    auto program = loader.loadModule(InputFilename, TargetTriple);
     
     if (loader.hasErrors()) {
         std::cerr << "Module loading failed:\n";

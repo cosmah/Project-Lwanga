@@ -20,7 +20,9 @@ public:
     
     // Load a module and all its dependencies
     // Returns the merged program AST or nullptr on error
-    std::unique_ptr<ProgramAST> loadModule(const std::string& mainFilePath);
+    // targetTriple: LLVM triple (e.g. x86_64-pc-windows-gnu) for #if PLATFORM_* in the preprocessor
+    std::unique_ptr<ProgramAST> loadModule(const std::string& mainFilePath,
+                                           const std::string& targetTriple = "");
     
     // Check if there were errors during loading
     bool hasErrors() const { return !errors.empty(); }
@@ -38,6 +40,9 @@ private:
     
     // Error messages
     std::vector<std::string> errors;
+
+    // Passed to Preprocessor for each loaded file (PLATFORM_WINDOWS / PLATFORM_LINUX, etc.)
+    std::string compileTargetTriple;
     
     // Load a single module file
     std::unique_ptr<ProgramAST> loadSingleModule(const std::string& filePath, 
