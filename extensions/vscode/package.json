@@ -3,7 +3,7 @@
   "displayName": "Lwanga Language Support",
   "description": "Syntax highlighting, snippets, and language support for Lwanga - a security-focused systems programming language",
   "version": "1.0.3",
-  "publisher": "cosmc-technologies",
+  "publisher": "SsekiryaCosmah",
   "icon": "icons/lwanga-file-128.png",
   "repository": {
     "type": "git",
@@ -138,6 +138,7 @@
   "devDependencies": {
     "@types/node": "^18.0.0",
     "@types/vscode": "^1.80.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.9.3",
+    "vsce": "^2.15.0"
   }
 }

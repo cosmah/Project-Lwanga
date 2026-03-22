@@ -27,16 +27,16 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.workspace.onWillSaveTextDocument(event => {
             const config = vscode.workspace.getConfiguration('lwanga');
             if (config.get('formatOnSave') && event.document.languageId === 'lwanga') {
-                event.waitUntil(formatDocumentProvider(event.document));
+                event.waitUntil(formatDocumentProviderAsync(event.document));
             }
         })
     );
-    
+
     // Register document formatter
     context.subscriptions.push(
         vscode.languages.registerDocumentFormattingEditProvider('lwanga', {
-            provideDocumentFormattingEdits(document: vscode.TextDocument): vscode.TextEdit[] {
-                return formatDocumentProvider(document);
+            provideDocumentFormattingEdits(document: vscode.TextDocument): Thenable<vscode.TextEdit[]> {
+                return formatDocumentProviderAsync(document);
             }
         })
     );
@@ -51,31 +51,31 @@ async function formatDocument() {
         return;
     }
     
-    const edits = formatDocumentProvider(editor.document);
+    const edits = await formatDocumentProviderAsync(editor.document);
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.set(editor.document.uri, edits);
     await vscode.workspace.applyEdit(workspaceEdit);
-    
     vscode.window.showInformationMessage('Document formatted');
 }
 
-function formatDocumentProvider(document: vscode.TextDocument): vscode.TextEdit[] {
+
+async function formatDocumentProviderAsync(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
     const config = vscode.workspace.getConfiguration('lwanga');
     const formatterPath = config.get<string>('formatterPath', 'lwangafmt');
-    
     try {
-        const result = cp.execFileSync(formatterPath, ['--write', document.fileName], {
+        // Save the document before formatting
+        await document.save();
+        cp.execFileSync(formatterPath, ['--write', document.fileName], {
             encoding: 'utf8',
             timeout: 5000
         });
-        
-        // Reload the document
+        // Reload the document text after formatting
+        const newText = document.getText();
         const fullRange = new vscode.Range(
             document.positionAt(0),
-            document.positionAt(document.getText().length)
+            document.positionAt(newText.length)
         );
-        
-        return [vscode.TextEdit.replace(fullRange, document.getText())];
+        return [vscode.TextEdit.replace(fullRange, newText)];
     } catch (error: any) {
         outputChannel.appendLine(`Formatting error: ${error.message}`);
         vscode.window.showErrorMessage(`Failed to format: ${error.message}`);
